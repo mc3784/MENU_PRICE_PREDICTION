@@ -86,7 +86,7 @@ y_shuffled = y[shuffle_indices]
 
 # Split train/test/dev set
 x_dev, x_test, x_train = x_shuffled[:numberTestSamples_1], x_shuffled[numberTestSamples_1:numberTestSamples_2], x_shuffled[numberTestSamples_2:]
-y_dev, y_test, x_train = y_shuffled[:numberTestSamples_1], y_shuffled[numberTestSamples_1:numberTestSamples_2], y_shuffled[numberTestSamples_2:]
+y_dev, y_test, y_train = y_shuffled[:numberTestSamples_1], y_shuffled[numberTestSamples_1:numberTestSamples_2], y_shuffled[numberTestSamples_2:]
 
 print("Train/Dev/Test split: {:d}/{:d}/{:d}".format(len(y_train), len(y_dev), len(y_test)))
 

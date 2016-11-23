@@ -42,11 +42,11 @@ def load_data_and_labels():
     Loads MR polarity data from files, splits the data into words and generates labels.
     Returns split sentences and labels.
     """
-    with open('/Users/micheleceru/Desktop/3Semester/NLU/PROJECT/data/menuItemsNYC.csv', 'rb') as f:
+    with open('./../../../data/menuItemsNYC.csv', 'rb') as f:
         next(f, None)
         reader = csv.reader(f)
         fileList1 = list(reader)
-    with open('/Users/micheleceru/Desktop/3Semester/NLU/PROJECT/data/menuItemsSF.csv', 'rb') as f:
+    with open('./../../../data/menuItemsSF.csv', 'rb') as f:
         next(f, None)
         reader = csv.reader(f)
         fileList2 = list(reader)

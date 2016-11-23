@@ -35,7 +35,8 @@ print("")
 
 createFile = False
 useBigram = False
-splitPercentage = 0.1
+splitPercentage_1 = 0.15
+splitPercentage_2 = 0.3
 timestamp = str(int(time.time()))
 output_file = 'results.txt.' +timestamp
 
@@ -50,6 +51,8 @@ loss_list=[]
 earlyStopping = True
 notImproving = 0
 maxNotImprovingTimes = 4
+
+
 # Data Preparatopn
 # ==================================================
 
@@ -57,12 +60,11 @@ maxNotImprovingTimes = 4
 print("Loading data...")
 x_text, y = data_helpers.load_data_and_labels()
 print("Total number of samples: {}".format(len(x_text))) 
-numberTestSamples = int(splitPercentage*int(len(x_text)))
-print("Number of test samples: {}".format(numberTestSamples)) 
+numberTestSamples_1 = int(splitPercentage_1*int(len(x_text)))
+numberTestSamples_2 = int(splitPercentage_2*int(len(x_text)))
+#print("Number of test samples: {}".format(numberTestSamples)) 
 
 # Build vocabulary
-#l = [len(x.split(" ")) for x in x_text]
-#max_document_length = reduce(lambda x, y: x + y, l) / len(l)
 max_document_length = max([len(x.split(" ")) for x in x_text])
 print("max_document_length:")
 print(max_document_length) 
@@ -82,16 +84,15 @@ x_shuffled = x[shuffle_indices]
 y_shuffled = y[shuffle_indices]
 
 
-# Split train/test set
-x_train, x_dev = x_shuffled[:-numberTestSamples], x_shuffled[-numberTestSamples:]
-y_train, y_dev = y_shuffled[:-numberTestSamples], y_shuffled[-numberTestSamples:]
+# Split train/test/dev set
+x_dev, x_test, x_train = x_shuffled[:numberTestSamples_1], x_shuffled[numberTestSamples_1:numberTestSamples_2], x_shuffled[numberTestSamples_2:]
+y_dev, y_test, y_train = y_shuffled[:numberTestSamples_1], y_shuffled[numberTestSamples_1:numberTestSamples_2], y_shuffled[numberTestSamples_2:]
 
-print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
+print("Train/Dev/Test split: {:d}/{:d}/{:d}".format(len(y_train), len(y_dev), len(y_test)))
 
 #print(x_train.tolist())
 #exit() 
 vocabulary = data_helpers.create_vocabulary(x_train.tolist(),max_document_length)
-
 
 
 #vocabulary_file='vocabulary.txt.'+timestamp

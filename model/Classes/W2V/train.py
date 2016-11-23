@@ -13,7 +13,7 @@ from sys import exit
 # ==================================================
 
 # Model Hyperparameters
-tf.flags.DEFINE_string("word2vec", None, "Word2vec file with pre-trained embeddings (default: None)")
+tf.flags.DEFINE_string("word2vec", './../../../../W2V_pretrained_in/GoogleNews-vectors-negative300.bin', "Word2vec file with pre-trained embeddings (default: None)")
 tf.flags.DEFINE_string("embedding_type", 'Fixed', "Fixed embedding w2v or starting embedding (default: Fixed)")
 tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding set to 300 as in Word2Vec")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0.0)")
@@ -37,8 +37,8 @@ print("")
 
 createFile = False
 useBigram = False
-splitPercentage_1 = 0.1
-splitPercentage_1 = 0.2
+splitPercentage_1 = 0.15
+splitPercentage_2 = 0.3
 timestamp = str(int(time.time()))
 output_file = 'results.txt.' +timestamp
 
@@ -64,7 +64,7 @@ x_text, y = data_helpers.load_data_and_labels()
 print("Total number of samples: {}".format(len(x_text))) 
 numberTestSamples_1 = int(splitPercentage_1*int(len(x_text)))
 numberTestSamples_2 = int(splitPercentage_2*int(len(x_text)))
-print("Number of test samples: {}".format(numberTestSamples)) 
+#print("Number of test samples: {}".format(numberTestSamples)) 
 
 # Build vocabulary
 max_document_length = max([len(x.split(" ")) for x in x_text])
@@ -87,14 +87,15 @@ y_shuffled = y[shuffle_indices]
 
 
 # Split train/test/dev set
-x_train, x_dev, x_test = x_shuffled[:-numberTestSamples_1], x_shuffled[numberTestSamples_1:numberTestSamples_2], x_shuffled[numberTestSamples_2:]
-y_train, y_dev, y_test = y_shuffled[:-numberTestSamples_1], y_shuffled[numberTestSamples_1:numberTestSamples_2], y_shuffled[numberTestSamples_2:]
+x_dev, x_test, x_train = x_shuffled[:numberTestSamples_1], x_shuffled[numberTestSamples_1:numberTestSamples_2], x_shuffled[numberTestSamples_2:]
+y_dev, y_test, y_train = y_shuffled[:numberTestSamples_1], y_shuffled[numberTestSamples_1:numberTestSamples_2], y_shuffled[numberTestSamples_2:]
 
 print("Train/Dev/Test split: {:d}/{:d}/{:d}".format(len(y_train), len(y_dev), len(y_test)))
 
 #print(x_train.tolist())
 #exit() 
 vocabulary = data_helpers.create_vocabulary(x_train.tolist(),max_document_length)
+
 
 
 

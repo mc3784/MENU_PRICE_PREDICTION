@@ -21,6 +21,7 @@ class TextCBOF(object):
 #        print self.input_x
         #tf.boolean_mask(self.input_x , mask, name='boolean_mask')
   
+        self.embedding_type = embedding_type
 
         self.input_y = tf.placeholder(tf.float32, [None, num_classes], name="input_y")
         #self.dropout_keep_prob  = tf.placeholder(tf.float32, name="dropout_keep_prob") 
@@ -29,7 +30,7 @@ class TextCBOF(object):
         l2_loss = tf.constant(0.0)
 
         # Embedding layer
-        if embedding_type = 'Fixed':
+        if self.embedding_type == 'Fixed':
             with tf.device('/cpu:0'), tf.name_scope("embedding"):
                 self.W = tf.Variable(
                     tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
