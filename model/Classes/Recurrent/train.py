@@ -6,7 +6,7 @@ import os
 import time
 import datetime
 import data_helpers
-from rec_cbof import LSTM
+from rec_cbof import LSTM_CBOW
 from tensorflow.contrib import learn
 from sys import exit
 # Parameters
@@ -15,6 +15,7 @@ from sys import exit
 # Model Hyperparameters
 tf.flags.DEFINE_integer("embedding_dim", 128, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0.0)")
+tf.flags.DEFINE_float("max_grad_norm", 5.0, "Max. gradient allowed (default: 5.0)")
 tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Prob of drop out")
 
 # Training parameters
@@ -25,6 +26,10 @@ tf.flags.DEFINE_integer("checkpoint_every", 200, "Save model after this many ste
 # Misc Parameters
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
+#tf.flags.DEFINE_boolean("use_fp16", False,
+#                  "Train using 16-bit floats instead of 32bit floats")
+
+
 
 FLAGS = tf.flags.FLAGS
 FLAGS._parse_flags()
@@ -138,15 +143,20 @@ with tf.Graph().as_default():
       log_device_placement=FLAGS.log_device_placement)
     sess = tf.Session(config=session_conf)
     with sess.as_default():
-        cbof = TextCBOF(
+        cbof = LSTM_CBOW(
             sequence_length=x_train.shape[1],
             num_classes=10,
             vocab_size=len(vocab_processor.vocabulary_),
             embedding_size=FLAGS.embedding_dim,
-            n_hidden=64,
+            n_hidden=x_train.shape[1],
+            max_grad_norm = FLAGS.max_grad_norm,
+            n_layers = 1,
             #num_filters=FLAGS.num_filters,
-            dropout_keep_prob = FLAGS.dropout_keep_prob,
+            batch_size = FLAGS.batch_size,
+            #use_fp16 = FLAGS.use_fp16,
+            #dropout_keep_prob = FLAGS.dropout_keep_prob,
             l2_reg_lambda=FLAGS.l2_reg_lambda
+            #max_len_doc = max_document_length
             )
 
         # Define Training procedure
@@ -154,7 +164,9 @@ with tf.Graph().as_default():
         optimizer = tf.train.AdamOptimizer(1e-3)
         grads_and_vars = optimizer.compute_gradients(cbof.loss)
         train_op = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
-
+    
+        print("OPT")
+        print(train_op)
         # Keep track of gradient values and sparsity (optional)
         grad_summaries = []
         for g, v in grads_and_vars:
@@ -201,16 +213,34 @@ with tf.Graph().as_default():
             """
             A single training step
             """
+
+            fetches = {
+                  "loss": cbof.loss,
+                  "final_state": cbof.final_state,
+              }
+            start_time = time.time()
+            state = sess.run(cbof.initial_state)
+            #if eval_op is not None:
+
             feed_dict = {
-              cbof.input_x: x_batch,
-              cbof.input_y: y_batch
-            }
+                          cbof.input_x: x_batch,
+                          cbof.input_y: y_batch,
+                          cbof.is_training: True,
+                          cbof.dropout_keep_prob: 1.}
+            for i, (c, h) in enumerate(cbof.initial_state):
+                  feed_dict[c] = state[i].c
+                  feed_dict[h] = state[i].h
+
+
             _, step, summaries, loss, accuracy = sess.run(
-                [train_op, global_step, train_summary_op, cbof.loss, cbof.accuracy],
-                feed_dict)
+                [train_op, global_step, train_summary_op,  cbof.loss, cbof.accuracy], 
+                feed_dict, fetches)
+
+
             time_str = datetime.datetime.now().isoformat()
             print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
             #save value for plot
+
             current_step = tf.train.global_step(sess, global_step)
             if current_step % FLAGS.evaluate_every == 0:
                 with open(output_file, 'a') as out:
@@ -224,18 +254,31 @@ with tf.Graph().as_default():
             global notImproving
             feed_dict = {
               cbof.input_x: x_batch,
-              cbof.input_y: y_batch
+              cbof.input_y: y_batch,
+              cbof.is_training: False ,
+              cbof.dropout_keep_prob: 1.,
             }
+            fetches = {
+                  "loss": cbof.loss,
+                  "final_state": cbof.final_state,
+              }
+            state = sess.run(cbof.initial_state)
+
+
+            for i, (c, h) in enumerate(cbof.initial_state):
+                  feed_dict[c] = state[i].c
+                  feed_dict[h] = state[i].h
+
             step, summaries, loss, accuracy = sess.run(
-                [global_step, dev_summary_op, cbof.loss, cbof.accuracy],
-                feed_dict)
+                [ global_step, dev_summary_op,  cbof.loss, cbof.accuracy], 
+                feed_dict, fetches)
+
             time_str = datetime.datetime.now().isoformat()
             print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
 	    #Save value for plot:
             with open(output_file, 'a') as out:
                 out.write("{:g},{:g}".format(loss, accuracy) + '\n')
-            if writer:
-                writer.add_summary(summaries, step)
+
             #Early stopping condition
             if len(loss_list) > 0 and loss > loss_list[-1]:
                notImproving+=1 
@@ -247,12 +290,15 @@ with tf.Graph().as_default():
                sess.close()
                exit()
             loss_list.append(loss) 
+
         # Generate batches
         batches = data_helpers.batch_iter(
             list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
         # Training loop. For each batch...
         for batch in batches:
             x_batch, y_batch = zip(*batch)
+
+            print("Original X len %i" %len(x_batch))
             train_step(x_batch, y_batch)
             current_step = tf.train.global_step(sess, global_step)
             if current_step % FLAGS.evaluate_every == 0:

@@ -33,6 +33,7 @@ class TextCBOF(object):
             self.embedded_chars = tf.nn.embedding_lookup(E, self.input_x)
 
             #self.embedded_chars_expanded = tf.expand_dims(self.embedded_chars, -1)
+            print("inputx: {}".format(self.input_x.get_shape()))
             print("embedded_chars: {}".format(self.embedded_chars.get_shape()))
             self.embedded_chars_reduced=tf.reduce_mean(self.embedded_chars ,1)
             print("embedded_chars_reduced: {}".format(self.embedded_chars_reduced.get_shape()))
