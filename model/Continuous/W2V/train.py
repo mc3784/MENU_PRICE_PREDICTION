@@ -13,9 +13,7 @@ from sys import exit
 # ==================================================
 
 # Model Hyperparameters
-tf.flags.DEFINE_string("word2vec", None, "Word2vec file with pre-trained embeddings (default: None)")
-tf.flags.DEFINE_string("embedding_type", 'Fixed', "Fixed embedding w2v or starting embedding (default: Fixed)")
-tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding set to 300 as in Word2Vec")
+tf.flags.DEFINE_integer("embedding_dim", 128, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0.0)")
 tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Prob of drop out")
 
@@ -37,8 +35,8 @@ print("")
 
 createFile = False
 useBigram = False
-splitPercentage_1 = 0.1
-splitPercentage_1 = 0.2
+splitPercentage_1 = 0.15
+splitPercentage_2 = 0.3
 timestamp = str(int(time.time()))
 output_file = 'results.txt.' +timestamp
 
@@ -64,7 +62,7 @@ x_text, y = data_helpers.load_data_and_labels()
 print("Total number of samples: {}".format(len(x_text))) 
 numberTestSamples_1 = int(splitPercentage_1*int(len(x_text)))
 numberTestSamples_2 = int(splitPercentage_2*int(len(x_text)))
-print("Number of test samples: {}".format(numberTestSamples)) 
+#print("Number of test samples: {}".format(numberTestSamples)) 
 
 # Build vocabulary
 max_document_length = max([len(x.split(" ")) for x in x_text])
@@ -87,15 +85,14 @@ y_shuffled = y[shuffle_indices]
 
 
 # Split train/test/dev set
-x_train, x_dev, x_test = x_shuffled[:-numberTestSamples_1], x_shuffled[numberTestSamples_1:numberTestSamples_2], x_shuffled[numberTestSamples_2:]
-y_train, y_dev, y_test = y_shuffled[:-numberTestSamples_1], y_shuffled[numberTestSamples_1:numberTestSamples_2], y_shuffled[numberTestSamples_2:]
+x_dev, x_test, x_train = x_shuffled[:numberTestSamples_1], x_shuffled[numberTestSamples_1:numberTestSamples_2], x_shuffled[numberTestSamples_2:]
+y_dev, y_test, y_train = y_shuffled[:numberTestSamples_1], y_shuffled[numberTestSamples_1:numberTestSamples_2], y_shuffled[numberTestSamples_2:]
 
 print("Train/Dev/Test split: {:d}/{:d}/{:d}".format(len(y_train), len(y_dev), len(y_test)))
 
 #print(x_train.tolist())
 #exit() 
 vocabulary = data_helpers.create_vocabulary(x_train.tolist(),max_document_length)
-
 
 
 #vocabulary_file='vocabulary.txt.'+timestamp
@@ -141,11 +138,10 @@ with tf.Graph().as_default():
     with sess.as_default():
         cbof = TextCBOF(
             sequence_length=x_train.shape[1],
-            num_classes=10,
+            num_classes=1,
             vocab_size=len(vocab_processor.vocabulary_),
             embedding_size=FLAGS.embedding_dim,
             n_hidden=64,
-            embedding_type = FLAGS.embedding_type,
             #num_filters=FLAGS.num_filters,
             dropout_keep_prob = FLAGS.dropout_keep_prob,
             l2_reg_lambda=FLAGS.l2_reg_lambda
@@ -198,34 +194,6 @@ with tf.Graph().as_default():
 
         # Initialize all variables
         sess.run(tf.initialize_all_variables())
-
-        # Initialize all variables
-        sess.run(tf.initialize_all_variables())
-        if FLAGS.word2vec:
-            # initial matrix with random uniform
-            initW = np.random.uniform(-0.25,0.25,(len(vocab_processor.vocabulary_), FLAGS.embedding_dim))
-            # load any vectors from the word2vec
-            print("Load word2vec file {}\n".format(FLAGS.word2vec))
-            with open(FLAGS.word2vec, "rb") as f:
-                header = f.readline()
-                vocab_size, layer1_size = map(int, header.split())
-                binary_len = np.dtype('float32').itemsize * layer1_size
-                for line in xrange(vocab_size):
-                    word = []
-                    while True:
-                        ch = f.read(1)
-                        if ch == ' ':
-                            word = ''.join(word)
-                            break
-                        if ch != '\n':
-                            word.append(ch)   
-                    idx = vocab_processor.vocabulary_.get(word)
-                    if idx != None:
-                        initW[idx] = np.fromstring(f.read(binary_len), dtype='float32')  
-                    else:
-                        f.read(binary_len)    
-
-            sess.run(cbof.W.assign(initW))
 
         def train_step(x_batch, y_batch):
             """

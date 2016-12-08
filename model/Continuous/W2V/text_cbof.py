@@ -1,9 +1,6 @@
 import tensorflow as tf
 import numpy as np
 from sys import exit
-from tensorflow.models.embedding import gen_word2vec as word2vec
-
-
 
 class TextCBOF(object):
     """
@@ -11,7 +8,7 @@ class TextCBOF(object):
     Uses an embedding layer, followed by a hidden layer, and output layer.
     """
     def __init__(
-      self, sequence_length, num_classes, vocab_size,embedding_type,
+      self, sequence_length, num_classes, vocab_size,
       embedding_size, n_hidden, dropout_keep_prob,l2_reg_lambda=0.0):
 
         # Placeholders for input, output and dropout (which you need to implement!!!!)
@@ -29,37 +26,29 @@ class TextCBOF(object):
         l2_loss = tf.constant(0.0)
 
         # Embedding layer
-        if embedding_type = 'Fixed':
-            with tf.device('/cpu:0'), tf.name_scope("embedding"):
-                self.W = tf.Variable(
-                    tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
-                    name="E",
-                    trainable = False)
-                #self.embedded_chars = tf.nn.embedding_lookup(E, self.input_x)
-                self.embedded_chars = tf.nn.embedding_lookup(self.W, self.input_x)
-        else:
-            with tf.device('/cpu:0'), tf.name_scope("embedding"):
-                self.W = tf.Variable(
-                    tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
-                    name="E")
-                #self.embedded_chars = tf.nn.embedding_lookup(E, self.input_x)
-                self.embedded_chars = tf.nn.embedding_lookup(self.W, self.input_x)            
+        with tf.device('/cpu:0'), tf.name_scope("embedding"):
+            E = tf.Variable(
+                tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
+                name="E")
+            self.embedded_chars = tf.nn.embedding_lookup(E, self.input_x)
 
-        with tf.name_scope('multilayer'):
-            self.embedded_mean=tf.reduce_mean(self.embedded_chars ,1)
+            #self.embedded_chars_expanded = tf.expand_dims(self.embedded_chars, -1)
+            print("inputx: {}".format(self.input_x.get_shape()))
+            print("embedded_chars: {}".format(self.embedded_chars.get_shape()))
+            self.embedded_chars_reduced=tf.reduce_mean(self.embedded_chars ,1)
+            print("embedded_chars_reduced: {}".format(self.embedded_chars_reduced.get_shape()))
 
-            #Store weights and bias
-            W = tf.Variable(tf.truncated_normal([embedding_size,n_hidden], stddev=0.1), name="W")
-            b = tf.Variable(tf.random_normal([n_hidden]), name="b")
+            self.W = tf.Variable(tf.truncated_normal([embedding_size,n_hidden], stddev=0.1), name="W")
+            self.b = tf.Variable(tf.random_normal([n_hidden]), name="b")
             
-            # Layer Layer
-            self.layer_out = tf.nn.xw_plus_b( self.embedded_mean, W, b)
-            self.layer_out = tf.nn.relu(self.layer_out,name="tanh")
+            print("W {}".format(self.W.get_shape()))
 
-        #Set the seed to 1 to ensure same results at each run
-        with tf.name_scope("dropout"):
-            self.h_dropout = tf.nn.dropout(self.layer_out , self.dropout_keep_prob, seed =1)
-                            
+
+            self.output_layer = tf.add(tf.matmul(self.embedded_chars_reduced,self.W),self.b)
+            self.output_layer = tf.nn.relu(self.output_layer, name="relu")
+
+            print("self.output_layer {}".format(self.output_layer.get_shape()))
+                
 
         # Final (unnormalized) scores and predictions
         with tf.name_scope("output"):
@@ -72,21 +61,22 @@ class TextCBOF(object):
             b = tf.Variable(tf.constant(0.1, shape=[num_classes]), name="b")
             l2_loss += tf.nn.l2_loss(W)
             l2_loss += tf.nn.l2_loss(b)
-            self.scores = tf.nn.xw_plus_b( self.h_dropout, W, b, name="scores")
+            self.scores = tf.nn.xw_plus_b( self.output_layer, W, b, name="scores")
             print("self.scores: {}".format(self.scores.get_shape()))
-            self.predictions = tf.argmax(self.scores, 1, name="predictions")
+            #self.predictions = tf.argmax(self.scores, 1, name="predictions")
 
         # CalculateMean cross-entropy loss
         with tf.name_scope("loss"):
-            losses = tf.nn.softmax_cross_entropy_with_logits(self.scores, self.input_y)
-            self.loss = tf.reduce_mean(losses) + l2_reg_lambda * l2_loss
+            losses =tf.squared_difference(self.scores, self.input_y)
+            #losses = tf.square(self.scores - self.input_y)
+            self.loss = tf.reduce_sum(losses) + l2_reg_lambda * l2_loss
 
         # Accuracy
         with tf.name_scope("accuracy"):
-            correct_predictions = tf.equal(self.predictions, tf.argmax(self.input_y, 1))
+            #correct_predictions = tf.equal(self.predictions, tf.argmax(self.input_y, 1))
 
             print(self.input_y.get_shape())
-            print(self.predictions.get_shape())
+            #print(self.predictions.get_shape())
             print(self.input_y) 
-            self.accuracy = tf.reduce_mean(tf.cast(correct_predictions, "float"), name="accuracy")
+            self.accuracy = tf.reduce_sum(losses, name="accuracy")
 
