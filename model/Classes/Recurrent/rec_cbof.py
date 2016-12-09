@@ -11,16 +11,17 @@ class LSTM_CBOW(object):
     Uses an embedding layer, followed by a hidden layer, and output layer.
     """
     def __init__(
-      self, sequence_length, num_classes, vocab_size,batch_size, max_grad_norm, 
+      self, sequence_length, num_classes, vocab_size, max_grad_norm, batch_size
       embedding_size, n_hidden, n_layers, l2_reg_lambda=0.0):
 
         self.is_training = tf.placeholder(tf.bool, name="is_training")
-
         #l2_loss = tf.constant(0.0)
         # Placeholders for input, output and dropout (which you need to implement!!!!)
 
         self.dropout_keep_prob  = tf.placeholder(tf.float32, name="dropout_keep_prob") 
+        #batch_size = tf.placeholder(tf.int32, name = "batch_size")
         self.input_x = tf.placeholder(tf.int32, [batch_size, sequence_length], name="input_x")
+
         #mask = tf.not_equal(self.input_x, 0, name=None)
 #        print self.input_x
         #tf.boolean_mask(self.input_x , mask, name='boolean_mask')

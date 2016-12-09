@@ -152,7 +152,7 @@ with tf.Graph().as_default():
             max_grad_norm = FLAGS.max_grad_norm,
             n_layers = 1,
             #num_filters=FLAGS.num_filters,
-            batch_size = FLAGS.batch_size,
+            #batch_size = FLAGS.batch_size,
             #use_fp16 = FLAGS.use_fp16,
             #dropout_keep_prob = FLAGS.dropout_keep_prob,
             l2_reg_lambda=FLAGS.l2_reg_lambda
@@ -213,28 +213,40 @@ with tf.Graph().as_default():
             """
             A single training step
             """
+            start_time = time.time()
+            state = sess.run(cbof.initial_state)
 
             fetches = {
                   "loss": cbof.loss,
+                  "accuracy": cbof.accuracy,
+                  "step": global_step,
                   "final_state": cbof.final_state,
               }
-            start_time = time.time()
-            state = sess.run(cbof.initial_state)
+
+
             #if eval_op is not None:
 
             feed_dict = {
                           cbof.input_x: x_batch,
                           cbof.input_y: y_batch,
+                          cbof.batch_size : FLAGS.batch_size,
                           cbof.is_training: True,
                           cbof.dropout_keep_prob: 1.}
             for i, (c, h) in enumerate(cbof.initial_state):
                   feed_dict[c] = state[i].c
                   feed_dict[h] = state[i].h
 
+            vals = sess.run(fetches, feed_dict)
+            print(vals.keys())
+            loss = vals["loss"]
+            state = vals["final_state"]
+            step = vals["step"]
+            accuracy = vals["accuracy"]
 
-            _, step, summaries, loss, accuracy = sess.run(
-                [train_op, global_step, train_summary_op,  cbof.loss, cbof.accuracy], 
-                feed_dict, fetches)
+
+            #_, step, summaries, loss, accuracy = sess.run(
+            #    [train_op, global_step, train_summary_op,  cbof.loss, cbof.accuracy], 
+            #    feed_dict, fetches)
 
 
             time_str = datetime.datetime.now().isoformat()
@@ -245,33 +257,45 @@ with tf.Graph().as_default():
             if current_step % FLAGS.evaluate_every == 0:
                 with open(output_file, 'a') as out:
                     out.write("{},{:g},{:g}".format(step, loss, accuracy) + ',')
-            train_summary_writer.add_summary(summaries, step)
+            #train_summary_writer.add_summary(summaries, step)
 
         def dev_step(x_batch, y_batch, writer=None):
             """
             Evaluates model on a dev set
             """
             global notImproving
-            feed_dict = {
-              cbof.input_x: x_batch,
-              cbof.input_y: y_batch,
-              cbof.is_training: False ,
-              cbof.dropout_keep_prob: 1.,
-            }
-            fetches = {
-                  "loss": cbof.loss,
-                  "final_state": cbof.final_state,
-              }
+            start_time = time.time()
             state = sess.run(cbof.initial_state)
 
+            fetches = {
+                  "loss": cbof.loss,
+                  "accuracy": cbof.accuracy,
+                  "step": global_step,
+                  "final_state": cbof.final_state,
+
+              }
+
+            feed_dict = {
+                          cbof.input_x: x_batch,
+                          cbof.input_y: y_batch,
+                          cbof.batch_size : length(y_batch),
+                          cbof.is_training: False,
+                          cbof.dropout_keep_prob: 1.}
 
             for i, (c, h) in enumerate(cbof.initial_state):
                   feed_dict[c] = state[i].c
                   feed_dict[h] = state[i].h
 
-            step, summaries, loss, accuracy = sess.run(
-                [ global_step, dev_summary_op,  cbof.loss, cbof.accuracy], 
-                feed_dict, fetches)
+            vals = sess.run(fetches, feed_dict)
+            print(vals.keys())
+            loss = vals["loss"]
+            state = vals["final_state"]
+            step = vals["step"]
+            accuracy = vals["accuracy"]
+
+            #step, summaries, loss, accuracy = sess.run(
+            #    [ global_step, dev_summary_op,  cbof.loss, cbof.accuracy], 
+            #    feed_dict, fetches)
 
             time_str = datetime.datetime.now().isoformat()
             print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
