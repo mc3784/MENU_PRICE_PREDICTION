@@ -65,26 +65,26 @@ def load_data_and_labels():
                     price = 0
             else:
                 price = float(prices[1])/2. if prices[0].strip(" - ")=="" else (float(prices[0].strip(" - "))+float(prices[1]))/2
-            if price<=5:
-                priceClass = [1,0,0,0,0,0,0,0,0,0]
-            elif price<=10:
-                priceClass = [0,1,0,0,0,0,0,0,0,0]
-            elif price<=15:
-                priceClass = [0,0,1,0,0,0,0,0,0,0]
-            elif price<=20:
-                priceClass = [0,0,0,1,0,0,0,0,0,0]
-            elif price<=25:
-                priceClass = [0,0,0,0,1,0,0,0,0,0]
-            elif price<=30:
-                priceClass = [0,0,0,0,0,1,0,0,0,0]
-            elif price<=40:
-                priceClass = [0,0,0,0,0,0,1,0,0,0]
-            elif price<=50:
-                priceClass = [0,0,0,0,0,0,0,1,0,0]
-            elif price<=70:
-                priceClass = [0,0,0,0,0,0,0,0,1,0]
-            elif price>=70:
-                priceClass = [0,0,0,0,0,0,0,0,0,1]
+            # if price<=5:
+            #     priceClass = [1,0,0,0,0,0,0,0,0,0]
+            # elif price<=10:
+            #     priceClass = [0,1,0,0,0,0,0,0,0,0]
+            # elif price<=15:
+            #     priceClass = [0,0,1,0,0,0,0,0,0,0]
+            # elif price<=20:
+            #     priceClass = [0,0,0,1,0,0,0,0,0,0]
+            # elif price<=25:
+            #     priceClass = [0,0,0,0,1,0,0,0,0,0]
+            # elif price<=30:
+            #     priceClass = [0,0,0,0,0,1,0,0,0,0]
+            # elif price<=40:
+            #     priceClass = [0,0,0,0,0,0,1,0,0,0]
+            # elif price<=50:
+            #     priceClass = [0,0,0,0,0,0,0,1,0,0]
+            # elif price<=70:
+            #     priceClass = [0,0,0,0,0,0,0,0,1,0]
+            # elif price>=70:
+            #     priceClass = [0,0,0,0,0,0,0,0,0,1]
         except Exception as e:
             print e
             print l
@@ -93,7 +93,7 @@ def load_data_and_labels():
         if price >5000:
             continue
         x.append(str(l[3])+" "+str(l[5]))
-        y.append(priceClass)
+        y.append([price])
     return [x, y]
 
 
