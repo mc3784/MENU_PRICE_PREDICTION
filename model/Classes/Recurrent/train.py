@@ -161,7 +161,7 @@ with tf.Graph().as_default():
             #num_filters=FLAGS.num_filters,
             batch_size = FLAGS.batch_size,
             #use_fp16 = FLAGS.use_fp16,
-            #dropout_keep_prob = FLAGS.dropout_keep_prob,
+            dropout_keep_prob = FLAGS.dropout_keep_prob,
             l2_reg_lambda=FLAGS.l2_reg_lambda
             #max_len_doc = max_document_length
             )
@@ -182,7 +182,7 @@ with tf.Graph().as_default():
             #num_filters=FLAGS.num_filters,
             batch_size = len(y_dev),
             #use_fp16 = FLAGS.use_fp16,
-            #dropout_keep_prob = FLAGS.dropout_keep_prob,
+            dropout_keep_prob = 1.,
             l2_reg_lambda=FLAGS.l2_reg_lambda
             #max_len_doc = max_document_length
             )
@@ -191,30 +191,29 @@ with tf.Graph().as_default():
 
 
 
-    def train_step(x_batch, y_batch, session, eval_op= None ):
+    def train_step(x_db, y_db, model, session, eval_op= None ):
         """
         A single training step
         """
         start_time = time.time()
-        state = session.run(cbof_train.initial_state)
+        state = session.run(model.initial_state)
 
         fetches = {
-              "loss": cbof_train.loss,
-              "accuracy": cbof_train.accuracy,
-              "final_state": cbof_train.final_state,
+              "loss": model.loss,
+              "accuracy": model.accuracy,
+              "final_state": model.final_state,
           }
 
         if eval_op is not None:
             fetches["eval_op"] = eval_op
 
         feed_dict = {
-                      cbof_train.input_x: x_batch,
-                      cbof_train.input_y: y_batch,
-                      cbof_train.is_training: True,
-                      cbof_train.dropout_keep_prob: float(1.)
+                      model.input_x: x_db,
+                      model.input_y: y_db,
+                      model.is_training: True
                     }
 
-        for i, (c, h) in enumerate(cbof_train.initial_state):
+        for i, (c, h) in enumerate(model.initial_state):
               feed_dict[c] = state[i].c
               feed_dict[h] = state[i].h
 
@@ -240,7 +239,7 @@ with tf.Graph().as_default():
                 out.write("{},{:g},{:g}".format(current_step, loss, accuracy) + ',')
         #train_summary_writer.add_summary(summaries, step)
 
-    def dev_step(x_tot, y_tot, session, writer=None):
+    def dev_step(x_tot, y_tot, model, session, writer=None):
         """
         Evaluates model on a dev set
         """
@@ -258,8 +257,7 @@ with tf.Graph().as_default():
         feed_dict = {
                       cbof_val.input_x: x_tot,
                       cbof_val.input_y: y_tot,
-                      cbof_val.is_training: False,
-                      cbof_val.dropout_keep_prob: float(1.)
+                      cbof_val.is_training: False
                     }
 
         for i, (c, h) in enumerate(cbof_val.initial_state):
@@ -267,7 +265,6 @@ with tf.Graph().as_default():
               feed_dict[h] = state[i].h
 
         vals = session.run(fetches, feed_dict)
-        print(vals.keys())
         loss = vals["loss"]
         state = vals["final_state"]
         accuracy = vals["accuracy"]
@@ -324,12 +321,12 @@ with tf.Graph().as_default():
             lr_decay = FLAGS.lr_decay ** max(i - FLAGS.num_epochs, 0.0)
             cbof_train.assign_lr(sess, FLAGS.learning_rate * lr_decay)
 
-            train_step(x_batch, y_batch, sess, eval_op=cbof_train.train_op)
+            train_step(x_batch, y_batch, cbof_train, sess, eval_op=cbof_train.train_op)
             current_step = tf.train.global_step(sess, sv.global_step)
 
             if current_step % FLAGS.evaluate_every == 0:
                 print("\nEvaluation: notImproving: {}".format(notImproving))
-                dev_step(x_dev, y_dev, sess, writer=dev_summary_writer)
+                dev_step(x_dev, y_dev, cbof_val, sess)
             print("")
                 #print(loss_list)
             if current_step % FLAGS.checkpoint_every == 0:

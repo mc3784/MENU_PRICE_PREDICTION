@@ -11,16 +11,16 @@ class LSTM_CBOW(object):
     Uses an embedding layer, followed by a hidden layer, and output layer.
     """
     def __init__(
-      self, sequence_length, num_classes, vocab_size, max_grad_norm, batch_size,
+      self, sequence_length, num_classes, vocab_size, max_grad_norm, batch_size, dropout_keep_prob,
       embedding_size, n_hidden, n_layers, l2_reg_lambda=0.0):
 
         self.is_training = tf.placeholder(tf.bool, name="is_training")
         #l2_loss = tf.constant(0.0)
         # Placeholders for input, output and dropout (which you need to implement!!!!)
 
-        self.dropout_keep_prob  = tf.placeholder(tf.float32, name="dropout_keep_prob") 
+        #self.dropout_keep_prob  = tf.placeholder(tf.float32, name="dropout_keep_prob") 
         self.input_x = tf.placeholder(tf.int32, [batch_size, sequence_length], name="input_x")
-  
+        self.dropout_keep_prob = dropout_keep_prob
 
         self.input_y = tf.placeholder(tf.int32, [batch_size, num_classes], name="input_y")
 
@@ -49,7 +49,7 @@ class LSTM_CBOW(object):
         #print("embedded_chars2: {}".format(self.embedded_chars.get_shape()))
 
         #with tf.name_scope('dropout'):
-        if self.is_training is not None :#and self.dropout_keep_prob <1:
+        if self.is_training is not None and self.dropout_keep_prob <1:
             embedded_chars = tf.nn.dropout(embedded_chars, self.dropout_keep_prob, seed =1)
 
         outputs = []
@@ -69,10 +69,10 @@ class LSTM_CBOW(object):
         for v in tf.all_variables():
             print(v.name)
 
-        outputs = tf.add_n(outputs)/sequence_length
-        print("outputred: {}".format(outputs.get_shape()))  
+        #outputs = tf.add_n(outputs)/sequence_length
+        #print("outputred: {}".format(outputs.get_shape()))  
         #with tf.name_scope("output"):
-        output = tf.reshape(tf.concat(1, outputs), [-1, n_hidden])
+        output = tf.reshape(tf.concat(1, outputs[0]), [-1, n_hidden])
         print("output2: {}".format(output.get_shape()))   
 
         #output = outputs[0]
