@@ -11,7 +11,7 @@ class LSTM_CBOW(object):
     Uses an embedding layer, followed by a hidden layer, and output layer.
     """
     def __init__(
-      self, sequence_length, num_classes, vocab_size, max_grad_norm, batch_size
+      self, sequence_length, num_classes, vocab_size, max_grad_norm, batch_size,
       embedding_size, n_hidden, n_layers, l2_reg_lambda=0.0):
 
         self.is_training = tf.placeholder(tf.bool, name="is_training")
@@ -19,17 +19,11 @@ class LSTM_CBOW(object):
         # Placeholders for input, output and dropout (which you need to implement!!!!)
 
         self.dropout_keep_prob  = tf.placeholder(tf.float32, name="dropout_keep_prob") 
-        #batch_size = tf.placeholder(tf.int32, name = "batch_size")
         self.input_x = tf.placeholder(tf.int32, [batch_size, sequence_length], name="input_x")
-
-        #mask = tf.not_equal(self.input_x, 0, name=None)
-#        print self.input_x
-        #tf.boolean_mask(self.input_x , mask, name='boolean_mask')
   
 
         self.input_y = tf.placeholder(tf.int32, [batch_size, num_classes], name="input_y")
-        #self.dropout_keep_prob  = tf.placeholder(tf.float32, name="dropout_keep_prob") 
-        #self.dropout_keep_prob = tf.constant(0.5,name="dropout_keep_prob") 
+
         # Keeping track of l2 regularization loss (optional)
         #l2_loss = tf.constant(0.0)
 
@@ -75,9 +69,12 @@ class LSTM_CBOW(object):
         for v in tf.all_variables():
             print(v.name)
 
+        outputs = tf.add_n(outputs)/sequence_length
+        print("outputred: {}".format(outputs.get_shape()))  
         #with tf.name_scope("output"):
-        output = tf.reshape(tf.concat(1, outputs[0]), [-1, n_hidden])
+        output = tf.reshape(tf.concat(1, outputs), [-1, n_hidden])
         print("output2: {}".format(output.get_shape()))   
+
         #output = outputs[0]
         softmax_w = tf.get_variable(
             "softmax_w", [n_hidden, num_classes], dtype=tf.float32)
@@ -111,18 +108,21 @@ class LSTM_CBOW(object):
         if self.is_training is None:
           return
 
-        #self._lr = tf.Variable(0.0, trainable=False)
-        #tvars = tf.trainable_variables()
-        #grads, _ = tf.clip_by_global_norm(tf.gradients(self.loss, tvars),
-        #                                  max_grad_norm)
-        #optimizer = tf.train.GradientDescentOptimizer(self._lr)
-        #self._train_op = optimizer.apply_gradients(
-        #    zip(grads, tvars),
-        #    global_step=tf.contrib.framework.get_or_create_global_step())
+        self._lr = tf.Variable(0.0, trainable=False)
+        tvars = tf.trainable_variables()
+        grads, _ = tf.clip_by_global_norm(tf.gradients(self.loss, tvars),
+                                          max_grad_norm)
+        optimizer = tf.train.GradientDescentOptimizer(self._lr)
+        self._train_op = optimizer.apply_gradients(
+            zip(grads, tvars),
+            global_step=tf.contrib.framework.get_or_create_global_step())
 
-        #self._new_lr = tf.placeholder(
-        #    tf.float32, shape=[], name="new_learning_rate")
-        #self._lr_update = tf.assign(self._lr, self._new_lr) 
+        self._new_lr = tf.placeholder(
+            tf.float32, shape=[], name="new_learning_rate")
+        self._lr_update = tf.assign(self._lr, self._new_lr) 
+
+    def assign_lr(self, session, lr_value):
+        session.run(self._lr_update, feed_dict={self._new_lr: lr_value})
                 
 
     @property
@@ -145,11 +145,11 @@ class LSTM_CBOW(object):
     def final_state(self):
         return self._final_state
 
-    #@property
-    #def lr(self):
-    #    return self._lr
+    @property
+    def lr(self):
+        return self._lr
 
-    #@property
-    #def train_op(self):
-    #    return self._train_op
+    @property
+    def train_op(self):
+        return self._train_op
 

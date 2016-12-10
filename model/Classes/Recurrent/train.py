@@ -17,6 +17,9 @@ tf.flags.DEFINE_integer("embedding_dim", 128, "Dimensionality of character embed
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0.0)")
 tf.flags.DEFINE_float("max_grad_norm", 5.0, "Max. gradient allowed (default: 5.0)")
 tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Prob of drop out")
+tf.flags.DEFINE_float("learning_rate", 1.0, "Learning Rate")
+tf.flags.DEFINE_float("lr_decay", 0.5, "Learning Rate Decay")
+tf.flags.DEFINE_float("init_scale", 0.1, "Initial Scale")
 
 # Training parameters
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
@@ -138,12 +141,16 @@ x_dev = np.array(list(vocab_processor.transform(x_dev)))
 # ==================================================
 
 with tf.Graph().as_default():
-    session_conf = tf.ConfigProto(
-      allow_soft_placement=FLAGS.allow_soft_placement,
-      log_device_placement=FLAGS.log_device_placement)
-    sess = tf.Session(config=session_conf)
-    with sess.as_default():
-        cbof = LSTM_CBOW(
+
+    init_op = tf.initialize_all_variables()
+    se1 = tf.InteractiveSession()
+    se1.run([init_op])
+    se1.close()
+    initializer = tf.random_uniform_initializer(-FLAGS.init_scale,
+                                                FLAGS.init_scale)
+    with tf.name_scope("Train"):
+        with tf.variable_scope("Model", reuse=None, initializer=initializer):
+            cbof_train = LSTM_CBOW(
             sequence_length=x_train.shape[1],
             num_classes=10,
             vocab_size=len(vocab_processor.vocabulary_),
@@ -152,184 +159,179 @@ with tf.Graph().as_default():
             max_grad_norm = FLAGS.max_grad_norm,
             n_layers = 1,
             #num_filters=FLAGS.num_filters,
-            #batch_size = FLAGS.batch_size,
+            batch_size = FLAGS.batch_size,
             #use_fp16 = FLAGS.use_fp16,
             #dropout_keep_prob = FLAGS.dropout_keep_prob,
             l2_reg_lambda=FLAGS.l2_reg_lambda
             #max_len_doc = max_document_length
             )
+        tf.scalar_summary("Training_Loss", cbof_train.loss)
+        tf.scalar_summary("Training_Accuracy", cbof_train.accuracy)
+        tf.scalar_summary("Learning_rate", cbof_train.lr)
 
-        # Define Training procedure
-        global_step = tf.Variable(0, name="global_step", trainable=False)
-        optimizer = tf.train.AdamOptimizer(1e-3)
-        grads_and_vars = optimizer.compute_gradients(cbof.loss)
-        train_op = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
-    
-        print("OPT")
-        print(train_op)
-        # Keep track of gradient values and sparsity (optional)
-        grad_summaries = []
-        for g, v in grads_and_vars:
-            if g is not None:
-                grad_hist_summary = tf.histogram_summary("{}/grad/hist".format(v.name), g)
-                sparsity_summary = tf.scalar_summary("{}/grad/sparsity".format(v.name), tf.nn.zero_fraction(g))
-                grad_summaries.append(grad_hist_summary)
-                grad_summaries.append(sparsity_summary)
-        grad_summaries_merged = tf.merge_summary(grad_summaries)
-
-        # Output directory for models and summaries
-        out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
-        print("Writing to {}\n".format(out_dir))
-
-        # Summaries for loss and accuracy
-        loss_summary = tf.scalar_summary("loss", cbof.loss)
-        acc_summary = tf.scalar_summary("accuracy", cbof.accuracy)
-
-        # Train Summaries
-        train_summary_op = tf.merge_summary([loss_summary, acc_summary, grad_summaries_merged])
-        train_summary_dir = os.path.join(out_dir, "summaries", "train")
-        train_summary_writer = tf.train.SummaryWriter(train_summary_dir, sess.graph)
+    with tf.name_scope("Valid"):
+        with tf.variable_scope("Model", reuse=True, initializer=initializer):
+            cbof_val= LSTM_CBOW(
+            sequence_length=x_train.shape[1],
+            num_classes=10,
+            vocab_size=len(vocab_processor.vocabulary_),
+            embedding_size=FLAGS.embedding_dim,
+            n_hidden=x_train.shape[1],
+            max_grad_norm = FLAGS.max_grad_norm,
+            n_layers = 1,
+            #num_filters=FLAGS.num_filters,
+            batch_size = len(y_dev),
+            #use_fp16 = FLAGS.use_fp16,
+            #dropout_keep_prob = FLAGS.dropout_keep_prob,
+            l2_reg_lambda=FLAGS.l2_reg_lambda
+            #max_len_doc = max_document_length
+            )
+        tf.scalar_summary("loss_dev", cbof_val.loss)
+        tf.scalar_summary("accuracy_dev", cbof_val.loss)
 
 
-        # Dev summaries
-        dev_summary_op = tf.merge_summary([loss_summary, acc_summary])
-        dev_summary_dir = os.path.join(out_dir, "summaries", "dev")
-        dev_summary_writer = tf.train.SummaryWriter(dev_summary_dir, sess.graph)
 
-        # Checkpoint directory. Tensorflow assumes this directory already exists so we need to create it
-        checkpoint_dir = os.path.abspath(os.path.join(out_dir, "checkpoints"))
-        checkpoint_prefix = os.path.join(checkpoint_dir, "model")
-        if not os.path.exists(checkpoint_dir):
-            os.makedirs(checkpoint_dir)
-        saver = tf.train.Saver(tf.all_variables())
+    def train_step(x_batch, y_batch, session, eval_op= None ):
+        """
+        A single training step
+        """
+        start_time = time.time()
+        state = session.run(cbof_train.initial_state)
 
-        # Write vocabulary
-        vocab_processor.save(os.path.join(out_dir, "vocab"))
+        fetches = {
+              "loss": cbof_train.loss,
+              "accuracy": cbof_train.accuracy,
+              "final_state": cbof_train.final_state,
+          }
 
-        # Initialize all variables
-        sess.run(tf.initialize_all_variables())
+        if eval_op is not None:
+            fetches["eval_op"] = eval_op
 
-        def train_step(x_batch, y_batch):
-            """
-            A single training step
-            """
-            start_time = time.time()
-            state = sess.run(cbof.initial_state)
+        feed_dict = {
+                      cbof_train.input_x: x_batch,
+                      cbof_train.input_y: y_batch,
+                      cbof_train.is_training: True,
+                      cbof_train.dropout_keep_prob: float(1.)
+                    }
 
-            fetches = {
-                  "loss": cbof.loss,
-                  "accuracy": cbof.accuracy,
-                  "step": global_step,
-                  "final_state": cbof.final_state,
-              }
+        for i, (c, h) in enumerate(cbof_train.initial_state):
+              feed_dict[c] = state[i].c
+              feed_dict[h] = state[i].h
 
-
-            #if eval_op is not None:
-
-            feed_dict = {
-                          cbof.input_x: x_batch,
-                          cbof.input_y: y_batch,
-                          cbof.batch_size : FLAGS.batch_size,
-                          cbof.is_training: True,
-                          cbof.dropout_keep_prob: 1.}
-            for i, (c, h) in enumerate(cbof.initial_state):
-                  feed_dict[c] = state[i].c
-                  feed_dict[h] = state[i].h
-
-            vals = sess.run(fetches, feed_dict)
-            print(vals.keys())
-            loss = vals["loss"]
-            state = vals["final_state"]
-            step = vals["step"]
-            accuracy = vals["accuracy"]
+        vals = session.run(fetches, feed_dict)
+        print(vals.keys())
+        loss = vals["loss"]
+        state = vals["final_state"]
+        accuracy = vals["accuracy"]
 
 
-            #_, step, summaries, loss, accuracy = sess.run(
-            #    [train_op, global_step, train_summary_op,  cbof.loss, cbof.accuracy], 
-            #    feed_dict, fetches)
+        #_, step, summaries, loss, accuracy = sess.run(
+        #    [train_op, global_step, train_summary_op,  cbof.loss, cbof.accuracy], 
+        #    feed_dict, fetches)
+
+        current_step = tf.train.global_step(session, sv.global_step)
+        time_str = datetime.datetime.now().isoformat()
+        print("{}: step {}, loss {:g}, acc {:g}".format(time_str, current_step, loss, accuracy))
+        #save value for plot
 
 
-            time_str = datetime.datetime.now().isoformat()
-            print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
-            #save value for plot
-
-            current_step = tf.train.global_step(sess, global_step)
-            if current_step % FLAGS.evaluate_every == 0:
-                with open(output_file, 'a') as out:
-                    out.write("{},{:g},{:g}".format(step, loss, accuracy) + ',')
-            #train_summary_writer.add_summary(summaries, step)
-
-        def dev_step(x_batch, y_batch, writer=None):
-            """
-            Evaluates model on a dev set
-            """
-            global notImproving
-            start_time = time.time()
-            state = sess.run(cbof.initial_state)
-
-            fetches = {
-                  "loss": cbof.loss,
-                  "accuracy": cbof.accuracy,
-                  "step": global_step,
-                  "final_state": cbof.final_state,
-
-              }
-
-            feed_dict = {
-                          cbof.input_x: x_batch,
-                          cbof.input_y: y_batch,
-                          cbof.batch_size : length(y_batch),
-                          cbof.is_training: False,
-                          cbof.dropout_keep_prob: 1.}
-
-            for i, (c, h) in enumerate(cbof.initial_state):
-                  feed_dict[c] = state[i].c
-                  feed_dict[h] = state[i].h
-
-            vals = sess.run(fetches, feed_dict)
-            print(vals.keys())
-            loss = vals["loss"]
-            state = vals["final_state"]
-            step = vals["step"]
-            accuracy = vals["accuracy"]
-
-            #step, summaries, loss, accuracy = sess.run(
-            #    [ global_step, dev_summary_op,  cbof.loss, cbof.accuracy], 
-            #    feed_dict, fetches)
-
-            time_str = datetime.datetime.now().isoformat()
-            print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
-	    #Save value for plot:
+        if current_step % FLAGS.evaluate_every == 0:
             with open(output_file, 'a') as out:
-                out.write("{:g},{:g}".format(loss, accuracy) + '\n')
+                out.write("{},{:g},{:g}".format(current_step, loss, accuracy) + ',')
+        #train_summary_writer.add_summary(summaries, step)
 
-            #Early stopping condition
-            if len(loss_list) > 0 and loss > loss_list[-1]:
-               notImproving+=1 
-               print("NOT IMPROVING FROM PREVIOUS STEP")
-            else:
-               notImproving = 0
-            if earlyStopping and notImproving > maxNotImprovingTimes:
-               print(loss_list)
-               sess.close()
-               exit()
-            loss_list.append(loss) 
+    def dev_step(x_tot, y_tot, session, writer=None):
+        """
+        Evaluates model on a dev set
+        """
+        global notImproving
+        start_time = time.time()
+        state = session.run(cbof_val.initial_state)
 
-        # Generate batches
-        batches = data_helpers.batch_iter(
-            list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
-        # Training loop. For each batch...
+        fetches = {
+              "loss": cbof_val.loss,
+              "accuracy": cbof_val.accuracy,
+              "final_state": cbof_val.final_state,
+
+          }
+
+        feed_dict = {
+                      cbof_val.input_x: x_tot,
+                      cbof_val.input_y: y_tot,
+                      cbof_val.is_training: False,
+                      cbof_val.dropout_keep_prob: float(1.)
+                    }
+
+        for i, (c, h) in enumerate(cbof_val.initial_state):
+              feed_dict[c] = state[i].c
+              feed_dict[h] = state[i].h
+
+        vals = session.run(fetches, feed_dict)
+        print(vals.keys())
+        loss = vals["loss"]
+        state = vals["final_state"]
+        accuracy = vals["accuracy"]
+
+        #step, summaries, loss, accuracy = sess.run(
+        #    [ global_step, dev_summary_op,  cbof.loss, cbof.accuracy], 
+        #    feed_dict, fetches)
+        current_step = tf.train.global_step(session, sv.global_step)
+        time_str = datetime.datetime.now().isoformat()
+        print("{}: step {}, loss {:g}, acc {:g}".format(time_str, current_step, loss, accuracy))
+    #Save value for plot:
+        with open(output_file, 'a') as out:
+            out.write("{:g},{:g}".format(loss, accuracy) + '\n')
+
+        #Early stopping condition
+        if len(loss_list) > 0 and loss > loss_list[-1]:
+           notImproving+=1 
+           print("NOT IMPROVING FROM PREVIOUS STEP")
+        else:
+           notImproving = 0
+        if earlyStopping and notImproving > maxNotImprovingTimes:
+           print(loss_list)
+           sess.close()
+           exit()
+        loss_list.append(loss) 
+
+    # Generate batches
+    # Initialize all variables
+
+    # Output directory for models and summaries
+
+
+    # Write vocabulary
+    #vocab_processor.save(os.path.join(out_dir, "vocab"))
+    out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
+    checkpoint_dir = os.path.abspath(os.path.join(out_dir, "checkpoints"))
+    checkpoint_prefix = os.path.join(checkpoint_dir, "model")
+    print("Writing to {}\n".format(out_dir))
+    train_summary_dir = os.path.join(out_dir, "summaries", "train")
+    sv = tf.train.Supervisor(logdir=train_summary_dir)
+
+    batches = data_helpers.batch_iter(list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
+
+    with sv.managed_session() as sess:
+        i=1
+        c=0
         for batch in batches:
-            x_batch, y_batch = zip(*batch)
+            c = c+len(batch)
+            if c==len(x_train): 
+                c+0
+                i=i+1
 
-            print("Original X len %i" %len(x_batch))
-            train_step(x_batch, y_batch)
-            current_step = tf.train.global_step(sess, global_step)
+            x_batch, y_batch = zip(*batch)
+            lr_decay = FLAGS.lr_decay ** max(i - FLAGS.num_epochs, 0.0)
+            cbof_train.assign_lr(sess, FLAGS.learning_rate * lr_decay)
+
+            train_step(x_batch, y_batch, sess, eval_op=cbof_train.train_op)
+            current_step = tf.train.global_step(sess, sv.global_step)
+
             if current_step % FLAGS.evaluate_every == 0:
                 print("\nEvaluation: notImproving: {}".format(notImproving))
-                dev_step(x_dev, y_dev, writer=dev_summary_writer)
-                print("")
+                dev_step(x_dev, y_dev, sess, writer=dev_summary_writer)
+            print("")
                 #print(loss_list)
             if current_step % FLAGS.checkpoint_every == 0:
-                path = saver.save(sess, checkpoint_prefix, global_step=current_step)
+                path = sv.saver.save(sess, checkpoint_prefix, global_step=current_step)
                 print("Saved model checkpoint to {}\n".format(path))

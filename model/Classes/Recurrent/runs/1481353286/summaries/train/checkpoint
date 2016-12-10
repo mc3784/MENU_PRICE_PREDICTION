@@ -1,0 +1,2 @@
+model_checkpoint_path: "/Users/luisae.quispeortiz/Documents/Fall16/NLP_DL/Project/Shared/MENU_PRICE_PREDICTION/model/Classes/Recurrent/runs/1481353286/summaries/train/model.ckpt-0"
+all_model_checkpoint_paths: "/Users/luisae.quispeortiz/Documents/Fall16/NLP_DL/Project/Shared/MENU_PRICE_PREDICTION/model/Classes/Recurrent/runs/1481353286/summaries/train/model.ckpt-0"
