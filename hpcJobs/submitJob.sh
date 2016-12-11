@@ -15,12 +15,7 @@ mkdir -p $RUNDIR
 cd $PBS_O_WORKDIR
 cp -R $SRCDIR/*.py $RUNDIR
 cd $RUNDIR
-mkdir checkpoints
 
-#module load scipy/intel/0.16.0
 module load tensorflow/python2.7/20160418
 module load nltk/3.0.2
-echo "before running train.py"
 python train.py
-echo $?
-echo "end"
