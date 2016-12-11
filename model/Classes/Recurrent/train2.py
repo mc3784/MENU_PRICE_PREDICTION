@@ -186,7 +186,7 @@ with tf.Graph().as_default():
     initializer = tf.random_uniform_initializer(-FLAGS.init_scale,
                                                 FLAGS.init_scale)
     with tf.name_scope("Train"):
-        x_train_i, y_train_i, nbe =batch_iter(list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
+        x_train_i, y_train_i, nbe =data_helpers.batch_iter(list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
         with tf.variable_scope("Model", reuse=None, initializer=initializer):
             cbof_train = LSTM_CBOW(
             input_x = x_train_i,
@@ -211,7 +211,7 @@ with tf.Graph().as_default():
         tf.scalar_summary("Learning_rate", cbof_train.lr)
 
     with tf.name_scope("Valid"):
-        x_val_i, y_val_i, nbe_val =batch_iter(list(zip(x_dev, y_dev)), FLAGS.batch_size, FLAGS.num_epochs)
+        x_val_i, y_val_i, nbe_val =data_helpers.batch_iter(list(zip(x_dev, y_dev)), FLAGS.batch_size, FLAGS.num_epochs)
         with tf.variable_scope("Model", reuse=True, initializer=initializer):
             cbof_val= LSTM_CBOW(
             input_x = x_val_i,
@@ -243,27 +243,17 @@ with tf.Graph().as_default():
     train_summary_dir = os.path.join(out_dir, "summaries", "train")
     sv = tf.train.Supervisor(logdir=train_summary_dir)
 
-    batches = data_helpers.batch_iter(list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
-
     with sv.managed_session() as sess:
-        i=1
-        c=0
-        for batch in batches:
-            c = c+len(batch)
-            if c==len(x_train): 
-                c+0
-                i=i+1
-
-            x_batch, y_batch = zip(*batch)
-            lr_decay = FLAGS.lr_decay ** max(i - FLAGS.num_epochs, 0.0)
+        for i in FLAGS.num_epochs:
+            lr_decay = FLAGS.lr_decay ** max(i- 4, 0.0)
             cbof_train.assign_lr(sess, FLAGS.learning_rate * lr_decay)
 
-            train_step(x_batch, y_batch, cbof_train, sess, eval_op=cbof_train.train_op)
+            run_step(x_batch, y_batch, cbof_train, sess, eval_op=cbof_train.train_op)
             current_step = tf.train.global_step(sess, sv.global_step)
 
             if current_step % FLAGS.evaluate_every == 0:
                 print("\nEvaluation: notImproving: {}".format(notImproving))
-                dev_step(x_dev, y_dev, cbof_val, sess)
+                run_step(x_dev, y_dev, cbof_val, sess)
             print("")
                 #print(loss_list)
             if current_step % FLAGS.checkpoint_every == 0:
