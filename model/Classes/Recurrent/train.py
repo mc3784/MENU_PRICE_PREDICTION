@@ -153,7 +153,6 @@ with tf.Graph().as_default():
             cbof_train = LSTM_CBOW(
             sequence_length=x_train.shape[1],
             num_classes=10,
-            num_batches_per_epoch = 
             vocab_size=len(vocab_processor.vocabulary_),
             embedding_size=FLAGS.embedding_dim,
             n_hidden=x_train.shape[1],
