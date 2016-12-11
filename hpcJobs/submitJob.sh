@@ -1,7 +1,7 @@
 #PBS -l nodes=1:ppn=1:gpus=1
 #PBS -l walltime=8:00:00
 #PBS -l mem=32GB
-#PBS -N A4
+#PBS -N continous_W2V
 #PBS -M mc3784@nyu.edu
 #PBS -m b -m e -m a -m abe
 #PBS -j oe
