@@ -5,7 +5,7 @@ import numpy as np
 import os
 import time
 import datetime
-import data_helpers2
+import data_helpers2 as data_helpers
 from rec_cbof2 import LSTM_CBOW
 from tensorflow.contrib import learn
 from sys import exit
