@@ -23,6 +23,7 @@ tf.flags.DEFINE_float("init_scale", 0.1, "Initial Scale")
 
 # Training parameters
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
+tf.flags.DEFINE_integer("num_steps", 1, "Num step Size (default: 1)")
 tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs (default: 200)")
 tf.flags.DEFINE_integer("evaluate_every", 50, "Evaluate model on dev set after this many steps (default: 100)")
 tf.flags.DEFINE_integer("checkpoint_every", 200, "Save model after this many steps (default: 100)")
@@ -186,7 +187,7 @@ with tf.Graph().as_default():
     initializer = tf.random_uniform_initializer(-FLAGS.init_scale,
                                                 FLAGS.init_scale)
     with tf.name_scope("Train"):
-        x_train_i, y_train_i, nbe =data_helpers.batch_iter(list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
+        x_train_i, y_train_i, nbe =data_helpers.batch_iter(list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs, FLAGS.num_steps)
         with tf.variable_scope("Model", reuse=None, initializer=initializer):
             cbof_train = LSTM_CBOW(
             input_x = x_train_i,
@@ -211,7 +212,7 @@ with tf.Graph().as_default():
         tf.scalar_summary("Learning_rate", cbof_train.lr)
 
     with tf.name_scope("Valid"):
-        x_val_i, y_val_i, nbe_val =data_helpers.batch_iter(list(zip(x_dev, y_dev)), FLAGS.batch_size, FLAGS.num_epochs)
+        x_val_i, y_val_i, nbe_val =data_helpers.batch_iter(list(zip(x_dev, y_dev)), FLAGS.batch_size, FLAGS.num_epochs, FLAGS.num_steps)
         with tf.variable_scope("Model", reuse=True, initializer=initializer):
             cbof_val= LSTM_CBOW(
             input_x = x_val_i,

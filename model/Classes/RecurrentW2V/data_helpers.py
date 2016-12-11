@@ -8,7 +8,6 @@ import pickle
 from sys import exit
 import csv
 from sys import exit
-import tensorflow as tf
 
 from nltk.corpus import stopwords
 
@@ -176,27 +175,25 @@ def substitute_bgr_oov(text,vocabulary,maxlength):
 
 
 
-def batch_iter(data, batch_size, num_epochs, num_steps, shuffle=True, name=None):
+def batch_iter(data, batch_size, num_epochs, shuffle=True):
     """
     Generates a batch iterator for a dataset.
     """
     data = np.array(data)
-    with tf.name_scope(name, "batch_iter", [data, batch_size, num_steps]):
-        raw_data = tf.convert_to_tensor(data, name="raw_data", dtype=tf.int32)
+    data_size = len(data)
+    num_batches_per_epoch = int(len(data)/batch_size) + 1
+    for epoch in range(num_epochs):
+        # Shuffle the data at each epoch
+        if shuffle:
+            shuffle_indices = np.random.permutation(np.arange(data_size))
+            shuffled_data = data[shuffle_indices]
+        else:
+            shuffled_data = data
+        for batch_num in range(num_batches_per_epoch):
+            start_index = batch_num * batch_size
+            end_index = min((batch_num + 1) * batch_size, data_size)
+            yield shuffled_data[start_index:end_index]
 
-        data_size = tf.size(raw_data)
-        num_batches_per_epoch = int(data_len/batch_size) + 1
-        data = tf.reshape(raw_data[0 : batch_size * num_batches_per_epoch],
-                          [batch_size, num_batches_per_epoch])
-
-        with tf.control_dependencies([assertion]):
-            num_batches_per_epoch = tf.identity(num_batches_per_epoch, name="num_batches_per_epoch")
-
-        i = tf.train.range_input_producer(num_batches_per_epoch, shuffle=False).dequeue()
-        x = tf.slice(data, [0, i * num_steps], [batch_size, num_steps])
-        y = tf.slice(data, [0, i * num_steps + 1], [batch_size, num_steps])
-        return x, y, num_batches_per_epoch
-    
 
 
 def find_bigrams(text):

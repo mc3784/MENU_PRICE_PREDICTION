@@ -13,7 +13,9 @@ from sys import exit
 # ==================================================
 
 # Model Hyperparameters
-tf.flags.DEFINE_integer("embedding_dim", 128, "Dimensionality of character embedding (default: 128)")
+tf.flags.DEFINE_string("word2vec", './../../../../W2V_pretrained_in/GoogleNews-vectors-negative300.bin', "Word2vec file with pre-trained embeddings (default: None)")
+tf.flags.DEFINE_string("embedding_type", 'Fixed', "Fixed embedding w2v or starting embedding (default: Fixed)")
+tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0.0)")
 tf.flags.DEFINE_float("max_grad_norm", 5.0, "Max. gradient allowed (default: 5.0)")
 tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Prob of drop out")
@@ -142,10 +144,10 @@ x_dev = np.array(list(vocab_processor.transform(x_dev)))
 
 with tf.Graph().as_default():
 
-    #init_op = tf.initialize_all_variables()
-    #se1 = tf.InteractiveSession()
-    #se1.run([init_op])
-    #se1.close()
+    init_op = tf.initialize_all_variables()
+    se1 = tf.InteractiveSession()
+    se1.run([init_op])
+    se1.close()
     initializer = tf.random_uniform_initializer(-FLAGS.init_scale,
                                                 FLAGS.init_scale)
     with tf.name_scope("Train"):
@@ -153,7 +155,6 @@ with tf.Graph().as_default():
             cbof_train = LSTM_CBOW(
             sequence_length=x_train.shape[1],
             num_classes=10,
-            num_batches_per_epoch = 
             vocab_size=len(vocab_processor.vocabulary_),
             embedding_size=FLAGS.embedding_dim,
             n_hidden=x_train.shape[1],
@@ -163,7 +164,8 @@ with tf.Graph().as_default():
             batch_size = FLAGS.batch_size,
             #use_fp16 = FLAGS.use_fp16,
             dropout_keep_prob = FLAGS.dropout_keep_prob,
-            l2_reg_lambda=FLAGS.l2_reg_lambda
+            l2_reg_lambda=FLAGS.l2_reg_lambda,
+            embedding_type= FLAGS.embedding_type
             #max_len_doc = max_document_length
             )
         tf.scalar_summary("Training_Loss", cbof_train.loss)
@@ -184,7 +186,8 @@ with tf.Graph().as_default():
             batch_size = len(y_dev),
             #use_fp16 = FLAGS.use_fp16,
             dropout_keep_prob = 1.,
-            l2_reg_lambda=FLAGS.l2_reg_lambda
+            l2_reg_lambda=FLAGS.l2_reg_lambda,
+            embedding_type= FLAGS.embedding_type
             #max_len_doc = max_document_length
             )
         tf.scalar_summary("loss_dev", cbof_val.loss)
@@ -219,7 +222,7 @@ with tf.Graph().as_default():
               feed_dict[h] = state[i].h
 
         vals = session.run(fetches, feed_dict)
-
+        print(vals.keys())
         loss = vals["loss"]
         state = vals["final_state"]
         accuracy = vals["accuracy"]
@@ -310,6 +313,31 @@ with tf.Graph().as_default():
     batches = data_helpers.batch_iter(list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
 
     with sv.managed_session() as sess:
+        if FLAGS.word2vec:
+            # initial matrix with random uniform
+            initW = np.random.uniform(-0.25,0.25,(len(vocab_processor.vocabulary_), FLAGS.embedding_dim))
+            # load any vectors from the word2vec
+            print("Load word2vec file {}\n".format(FLAGS.word2vec))
+            with open(FLAGS.word2vec, "rb") as f:
+                header = f.readline()
+                vocab_size, layer1_size = map(int, header.split())
+                binary_len = np.dtype('float32').itemsize * layer1_size
+                for line in xrange(vocab_size):
+                    word = []
+                    while True:
+                        ch = f.read(1)
+                        if ch == ' ':
+                            word = ''.join(word)
+                            break
+                        if ch != '\n':
+                            word.append(ch)   
+                    idx = vocab_processor.vocabulary_.get(word)
+                    if idx != None:
+                        initW[idx] = np.fromstring(f.read(binary_len), dtype='float32')  
+                    else:
+                        f.read(binary_len)    
+
+            sess.run(cbof_train.W.assign(initW))
         i=1
         c=0
         for batch in batches:

@@ -180,8 +180,6 @@ def batch_iter(data, batch_size, num_epochs, shuffle=True):
     Generates a batch iterator for a dataset.
     """
     data = np.array(data)
-          with tf.name_scope(name, "PTBProducer", [raw_data, batch_size, num_steps]):
-        raw_data = tf.convert_to_tensor(raw_data, name="raw_data", dtype=tf.int32)
     data_size = len(data)
     num_batches_per_epoch = int(len(data)/batch_size) + 1
     for epoch in range(num_epochs):

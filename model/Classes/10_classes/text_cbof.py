@@ -8,7 +8,7 @@ class TextCBOF(object):
     Uses an embedding layer, followed by a hidden layer, and output layer.
     """
     def __init__(
-      self, sequence_length, num_classes, vocab_size,
+      self, sequence_length, num_classes, vocab_size,max_grad_norm, batch_size,
       embedding_size, n_hidden, dropout_keep_prob,l2_reg_lambda=0.0):
 
         # Placeholders for input, output and dropout (which you need to implement!!!!)
