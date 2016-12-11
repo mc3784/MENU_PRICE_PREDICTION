@@ -142,10 +142,10 @@ x_dev = np.array(list(vocab_processor.transform(x_dev)))
 
 with tf.Graph().as_default():
 
-    init_op = tf.initialize_all_variables()
-    se1 = tf.InteractiveSession()
-    se1.run([init_op])
-    se1.close()
+    #xinit_op = tf.initialize_all_variables()
+    #se1 = tf.InteractiveSession()
+    #se1.run([init_op])
+    #se1.close()
     initializer = tf.random_uniform_initializer(-FLAGS.init_scale,
                                                 FLAGS.init_scale)
     with tf.name_scope("Train"):
