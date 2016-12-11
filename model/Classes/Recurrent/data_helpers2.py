@@ -8,6 +8,7 @@ import pickle
 from sys import exit
 import csv
 from sys import exit
+import tensorflow as tf
 
 from nltk.corpus import stopwords
 
