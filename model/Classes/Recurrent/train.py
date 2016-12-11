@@ -43,8 +43,8 @@ print("")
 
 createFile = False
 useBigram = False
-splitPercentage_1 = 0.15
-splitPercentage_2 = 0.3
+splitPercentage_1 = 0.1
+splitPercentage_2 = 0.2
 timestamp = str(int(time.time()))
 output_file = 'results.txt.' +timestamp
 
@@ -218,7 +218,7 @@ with tf.Graph().as_default():
               feed_dict[h] = state[i].h
 
         vals = session.run(fetches, feed_dict)
-        print(vals.keys())
+
         loss = vals["loss"]
         state = vals["final_state"]
         accuracy = vals["accuracy"]
@@ -332,3 +332,4 @@ with tf.Graph().as_default():
             if current_step % FLAGS.checkpoint_every == 0:
                 path = sv.saver.save(sess, checkpoint_prefix, global_step=current_step)
                 print("Saved model checkpoint to {}\n".format(path))
+

@@ -152,4 +152,3 @@ class LSTM_CBOW(object):
     @property
     def train_op(self):
         return self._train_op
-
