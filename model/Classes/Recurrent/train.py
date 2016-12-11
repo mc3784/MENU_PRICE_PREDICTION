@@ -180,7 +180,7 @@ with tf.Graph().as_default():
             max_grad_norm = FLAGS.max_grad_norm,
             n_layers = 1,
             #num_filters=FLAGS.num_filters,
-            batch_size = lFLAGS.batch_size,
+            batch_size = FLAGS.batch_size,
             #use_fp16 = FLAGS.use_fp16,
             dropout_keep_prob = 1.,
             l2_reg_lambda=FLAGS.l2_reg_lambda
