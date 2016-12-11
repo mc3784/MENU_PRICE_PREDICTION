@@ -211,7 +211,7 @@ with tf.Graph().as_default():
         tf.scalar_summary("Learning_rate", cbof_train.lr)
 
     with tf.name_scope("Valid"):
-        x_val_i, y_val_i, nbe_val =batch_iter(list(zip(x_dev y_dev)), FLAGS.batch_size, FLAGS.num_epochs)
+        x_val_i, y_val_i, nbe_val =batch_iter(list(zip(x_dev, y_dev)), FLAGS.batch_size, FLAGS.num_epochs)
         with tf.variable_scope("Model", reuse=True, initializer=initializer):
             cbof_val= LSTM_CBOW(
             input_x = x_val_i,
