@@ -180,7 +180,7 @@ with tf.Graph().as_default():
             max_grad_norm = FLAGS.max_grad_norm,
             n_layers = 1,
             #num_filters=FLAGS.num_filters,
-            batch_size = len(y_dev),
+            batch_size = lFLAGS.batch_size,
             #use_fp16 = FLAGS.use_fp16,
             dropout_keep_prob = 1.,
             l2_reg_lambda=FLAGS.l2_reg_lambda
@@ -254,20 +254,28 @@ with tf.Graph().as_default():
 
           }
 
-        feed_dict = {
-                      cbof_val.input_x: x_tot,
-                      cbof_val.input_y: y_tot,
-                      cbof_val.is_training: False
-                    }
+        c= 0
+        ba_dev = data_helpers.batch_iter(list(zip(x_tot, y_tot)), FLAGS.batch_size, 1)
+        for batch in batches:
+            c= c+1
+            x_batch, y_batch = zip(*ba_dev)
+            feed_dict = {
+              cbof_val.input_x: x_batch,
+              cbof_val.input_y: y_batch,
+              cbof_val.is_training: False
+            }
+            for i, (c, h) in enumerate(cbof_val.initial_state):
+                  feed_dict[c] = state[i].c
+                  feed_dict[h] = state[i].h
 
-        for i, (c, h) in enumerate(cbof_val.initial_state):
-              feed_dict[c] = state[i].c
-              feed_dict[h] = state[i].h
+            vals = session.run(fetches, feed_dict)
+            loss = loss + vals["loss"]
+            state = vals["final_state"]
+            accuracy = accuracy+ vals["accuracy"]
 
-        vals = session.run(fetches, feed_dict)
-        loss = vals["loss"]
-        state = vals["final_state"]
-        accuracy = vals["accuracy"]
+        loss = loss/c
+        accuracy = accuracy/c
+
 
         #step, summaries, loss, accuracy = sess.run(
         #    [ global_step, dev_summary_op,  cbof.loss, cbof.accuracy], 
