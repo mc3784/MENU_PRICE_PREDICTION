@@ -6,7 +6,7 @@ import os
 import time
 import datetime
 import data_helpers
-from rec_cbof import LSTM_CBOW
+from rec_cbof import LSTM_CBOW_W2
 from tensorflow.contrib import learn
 from sys import exit
 # Parameters
@@ -14,7 +14,7 @@ from sys import exit
 
 # Model Hyperparameters
 tf.flags.DEFINE_string("word2vec", './../../../../W2V_pretrained_in/GoogleNews-vectors-negative300.bin', "Word2vec file with pre-trained embeddings (default: None)")
-tf.flags.DEFINE_string("embedding_type", 'Fixed', "Fixed embedding w2v or starting embedding (default: Fixed)")
+tf.flags.DEFINE_boolean("embedding_type_fixed", True, "Fixed embedding w2v or starting embedding (default: Fixed)")
 tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0.0)")
 tf.flags.DEFINE_float("max_grad_norm", 5.0, "Max. gradient allowed (default: 5.0)")
@@ -105,8 +105,6 @@ print("Train/Dev/Test split: {:d}/{:d}/{:d}".format(len(y_train), len(y_dev), le
 vocabulary = data_helpers.create_vocabulary(x_train.tolist(),max_document_length)
 
 
-
-
 #vocabulary_file='vocabulary.txt.'+timestamp
 #with open(vocabulary_file, 'w') as thefile:
 #    for item in vocabulary:
@@ -144,15 +142,15 @@ x_dev = np.array(list(vocab_processor.transform(x_dev)))
 
 with tf.Graph().as_default():
 
-    init_op = tf.initialize_all_variables()
-    se1 = tf.InteractiveSession()
-    se1.run([init_op])
-    se1.close()
+    #init_op = tf.initialize_all_variables()
+    #se1 = tf.InteractiveSession()
+    #se1.run([init_op])
+    #se1.close()
     initializer = tf.random_uniform_initializer(-FLAGS.init_scale,
                                                 FLAGS.init_scale)
     with tf.name_scope("Train"):
         with tf.variable_scope("Model", reuse=None, initializer=initializer):
-            cbof_train = LSTM_CBOW(
+            cbof_train = LSTM_CBOW_W2(
             sequence_length=x_train.shape[1],
             num_classes=10,
             vocab_size=len(vocab_processor.vocabulary_),
@@ -165,16 +163,16 @@ with tf.Graph().as_default():
             #use_fp16 = FLAGS.use_fp16,
             dropout_keep_prob = FLAGS.dropout_keep_prob,
             l2_reg_lambda=FLAGS.l2_reg_lambda,
-            embedding_type= FLAGS.embedding_type
+            embedding_type = FLAGS.embedding_type_fixed
             #max_len_doc = max_document_length
             )
-        tf.scalar_summary("Training_Loss", cbof_train.loss)
-        tf.scalar_summary("Training_Accuracy", cbof_train.accuracy)
-        tf.scalar_summary("Learning_rate", cbof_train.lr)
+        #tf.scalar_summary("Training_Loss", cbof_train.loss)
+        #tf.scalar_summary("Training_Accuracy", cbof_train.accuracy)
+        #tf.scalar_summary("Learning_rate", cbof_train.lr)
 
     with tf.name_scope("Valid"):
         with tf.variable_scope("Model", reuse=True, initializer=initializer):
-            cbof_val= LSTM_CBOW(
+            cbof_val= LSTM_CBOW_W2(
             sequence_length=x_train.shape[1],
             num_classes=10,
             vocab_size=len(vocab_processor.vocabulary_),
@@ -183,15 +181,15 @@ with tf.Graph().as_default():
             max_grad_norm = FLAGS.max_grad_norm,
             n_layers = 1,
             #num_filters=FLAGS.num_filters,
-            batch_size = len(y_dev),
+            batch_size = FLAGS.batch_size,
             #use_fp16 = FLAGS.use_fp16,
             dropout_keep_prob = 1.,
             l2_reg_lambda=FLAGS.l2_reg_lambda,
-            embedding_type= FLAGS.embedding_type
+            embedding_type= FLAGS.embedding_type_fixed
             #max_len_doc = max_document_length
             )
-        tf.scalar_summary("loss_dev", cbof_val.loss)
-        tf.scalar_summary("accuracy_dev", cbof_val.loss)
+        #tf.scalar_summary("loss_dev", cbof_val.loss)
+        #tf.scalar_summary("accuracy_dev", cbof_val.loss)
 
 
 
@@ -221,8 +219,9 @@ with tf.Graph().as_default():
               feed_dict[c] = state[i].c
               feed_dict[h] = state[i].h
 
+
         vals = session.run(fetches, feed_dict)
-        print(vals.keys())
+
         loss = vals["loss"]
         state = vals["final_state"]
         accuracy = vals["accuracy"]
@@ -234,7 +233,7 @@ with tf.Graph().as_default():
 
         current_step = tf.train.global_step(session, sv.global_step)
         time_str = datetime.datetime.now().isoformat()
-        print("{}: step {}, loss {:g}, acc {:g}".format(time_str, current_step, loss, accuracy))
+        print("{}: Train step {}, loss {:g}, acc {:g}".format(time_str, current_step, loss, accuracy))
         #save value for plot
 
 
@@ -249,35 +248,50 @@ with tf.Graph().as_default():
         """
         global notImproving
         start_time = time.time()
-        state = session.run(cbof_val.initial_state)
+        state = session.run(model.initial_state)
 
+        loss = 0.0
+        accuracy = 0.0
         fetches = {
-              "loss": cbof_val.loss,
-              "accuracy": cbof_val.accuracy,
-              "final_state": cbof_val.final_state,
+              "loss": model.loss,
+              "accuracy": model.accuracy,
+              "final_state": model.final_state,
 
           }
 
-        feed_dict = {
-                      cbof_val.input_x: x_tot,
-                      cbof_val.input_y: y_tot,
-                      cbof_val.is_training: False
-                    }
+        count= 0
+        ba_dev = data_helpers.batch_iter(list(zip(x_tot, y_tot)), FLAGS.batch_size, 1)
+        print("Dev split created")
+        for batch in ba_dev:
 
-        for i, (c, h) in enumerate(cbof_val.initial_state):
-              feed_dict[c] = state[i].c
-              feed_dict[h] = state[i].h
+            x_batch, y_batch = zip(*batch)
+            if len(x_batch)==FLAGS.batch_size:
+                count= count+1
+                feed_dict = {
+                  model.input_x: x_batch,
+                  model.input_y: y_batch,
+                  model.is_training: False
+                }
+                for i, (c, h) in enumerate(model.initial_state):
+                      feed_dict[c] = state[i].c
+                      feed_dict[h] = state[i].h
 
-        vals = session.run(fetches, feed_dict)
-        loss = vals["loss"]
-        state = vals["final_state"]
-        accuracy = vals["accuracy"]
+                vals = session.run(fetches, feed_dict)
+                loss = loss + vals["loss"]
+                state = vals["final_state"]
+                accuracy = accuracy+ vals["accuracy"]
+                #print(loss, accuracy)
+
+        loss = loss*1./count
+        accuracy = accuracy*1./count
 
         #step, summaries, loss, accuracy = sess.run(
         #    [ global_step, dev_summary_op,  cbof.loss, cbof.accuracy], 
         #    feed_dict, fetches)
         current_step = tf.train.global_step(session, sv.global_step)
+        print(current_step)
         time_str = datetime.datetime.now().isoformat()
+        print("Evaluation Results")
         print("{}: step {}, loss {:g}, acc {:g}".format(time_str, current_step, loss, accuracy))
     #Save value for plot:
         with open(output_file, 'a') as out:
@@ -308,7 +322,7 @@ with tf.Graph().as_default():
     checkpoint_prefix = os.path.join(checkpoint_dir, "model")
     print("Writing to {}\n".format(out_dir))
     train_summary_dir = os.path.join(out_dir, "summaries", "train")
-    sv = tf.train.Supervisor(logdir=train_summary_dir)
+    sv = tf.train.Supervisor(logdir=checkpoint_prefix)
 
     batches = data_helpers.batch_iter(list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
 
@@ -335,9 +349,14 @@ with tf.Graph().as_default():
                     if idx != None:
                         initW[idx] = np.fromstring(f.read(binary_len), dtype='float32')  
                     else:
-                        f.read(binary_len)    
+                        f.read(binary_len) 
 
-            sess.run(cbof_train.W.assign(initW))
+                print("W2V extracted successfully, originally")   
+                print(vocab_size, layer1_size) #3MM , 300
+                print(initW.shape) # 7614, 300
+
+            cbof_train.assign_embd(sess, initW)
+            #sess.run(cbof_train.embedding.assign(initW))
         i=1
         c=0
         for batch in batches:
@@ -359,6 +378,6 @@ with tf.Graph().as_default():
             print("")
                 #print(loss_list)
             if current_step % FLAGS.checkpoint_every == 0:
-                path = sv.saver.save(sess, checkpoint_prefix, global_step=current_step)
-                print("Saved model checkpoint to {}\n".format(path))
+                sv.saver.save(sess, checkpoint_prefix, global_step=current_step)
+                print("Saved model checkpoint ")
 

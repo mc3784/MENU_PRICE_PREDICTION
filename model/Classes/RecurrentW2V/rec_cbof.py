@@ -5,7 +5,7 @@ from sys import exit
 
 
 
-class LSTM_CBOW(object):
+class LSTM_CBOW_W2(object):
     """
     A CBOF for text classification.
     Uses an embedding layer, followed by a hidden layer, and output layer.
@@ -16,8 +16,9 @@ class LSTM_CBOW(object):
 
         self.is_training = tf.placeholder(tf.bool, name="is_training")
         #l2_loss = tf.constant(0.0)
-        # Placeholders for input, output and dropout (which you need to implement!!!!)
         self.embedding_type = embedding_type
+        # Placeholders for input, output and dropout (which you need to implement!!!!)
+        #self.embedding_type = embedding_type
         #self.dropout_keep_prob  = tf.placeholder(tf.float32, name="dropout_keep_prob") 
         self.input_x = tf.placeholder(tf.int32, [batch_size, sequence_length], name="input_x")
         self.dropout_keep_prob = dropout_keep_prob
@@ -36,25 +37,25 @@ class LSTM_CBOW(object):
         self._initial_state = cell.zero_state(batch_size, tf.float32)
 
         # Embedding layer
-        # Embedding layer
-        if self.embedding_type == 'Fixed':
-            print("Fixed W2V embedding")
-            with tf.device('/cpu:0'), tf.name_scope("embedding"):
-                self.W = tf.Variable(
-                    tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
-                    name="E",
-                    trainable = False)
+        with tf.device('/cpu:0'):
+            if self.embedding_type ==True:
+                print("Using a Fixed Word2Vec Embedding Matrix")
+                self.embedding = tf.Variable(
+                                    tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
+                                    #name = "embedding",
+                                    dtype=tf.float32,
+                                    trainable=False)
+                embedded_chars = tf.nn.embedding_lookup(self.embedding, self.input_x)
+            else:
+                print("Starting with a Word2Vec Embedding Matrix")
+                self.embedding = tf.Variable(
+                                    tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
+                                    #name = "embedding",
+                                    dtype=tf.float32,
+                                    trainable = True)
+                                        
                 #self.embedded_chars = tf.nn.embedding_lookup(E, self.input_x)
-                embedded_chars = tf.nn.embedding_lookup(self.W, self.input_x)
-        else:
-            print("Starting W2V embedding")
-            with tf.device('/cpu:0'), tf.name_scope("embedding"):
-                self.W = tf.Variable(
-                    tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
-                    name="E")
-                #self.embedded_chars = tf.nn.embedding_lookup(E, self.input_x)
-                embedded_chars = tf.nn.embedding_lookup(self.W, self.input_x)   
-
+                embedded_chars = tf.nn.embedding_lookup(self.embedding, self.input_x) 
 
             #self.embedded_chars_expanded = tf.expand_dims(self.embedded_chars, -1)
         print("inputx: {}".format(self.input_x.get_shape()))
@@ -84,10 +85,10 @@ class LSTM_CBOW(object):
         for v in tf.all_variables():
             print(v.name)
 
-        #outputs = tf.add_n(outputs)/sequence_length
+        outputs = tf.add_n(outputs)/sequence_length
         #print("outputred: {}".format(outputs.get_shape()))  
         #with tf.name_scope("output"):
-        output = tf.reshape(tf.concat(1, outputs[0]), [-1, n_hidden])
+        output = tf.reshape(tf.concat(1, outputs), [-1, n_hidden])
         print("output2: {}".format(output.get_shape()))   
 
         #output = outputs[0]
@@ -138,7 +139,9 @@ class LSTM_CBOW(object):
 
     def assign_lr(self, session, lr_value):
         session.run(self._lr_update, feed_dict={self._new_lr: lr_value})
-                
+
+    def assign_embd(self, session, matrix_val):         
+        session.run(tf.assign(self.embedding, matrix_val))
 
     @property
     def input(self):
@@ -167,3 +170,4 @@ class LSTM_CBOW(object):
     @property
     def train_op(self):
         return self._train_op
+
