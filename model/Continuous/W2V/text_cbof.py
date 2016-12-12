@@ -27,10 +27,10 @@ class TextCBOF(object):
 
         # Embedding layer
         with tf.device('/cpu:0'), tf.name_scope("embedding"):
-            E = tf.Variable(
+            self.E = tf.Variable(
                 tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
                 name="E")
-            self.embedded_chars = tf.nn.embedding_lookup(E, self.input_x)
+            self.embedded_chars = tf.nn.embedding_lookup(self.E, self.input_x)
 
             #self.embedded_chars_expanded = tf.expand_dims(self.embedded_chars, -1)
             print("inputx: {}".format(self.input_x.get_shape()))
@@ -69,7 +69,7 @@ class TextCBOF(object):
         with tf.name_scope("loss"):
             losses =tf.squared_difference(self.scores, self.input_y)
             #losses = tf.square(self.scores - self.input_y)
-            self.loss = tf.reduce_sum(losses) + l2_reg_lambda * l2_loss
+            self.loss = tf.reduce_mean(losses) + l2_reg_lambda * l2_loss
 
         # Accuracy
         with tf.name_scope("accuracy"):
@@ -78,5 +78,5 @@ class TextCBOF(object):
             print(self.input_y.get_shape())
             #print(self.predictions.get_shape())
             print(self.input_y) 
-            self.accuracy = tf.reduce_sum(losses, name="accuracy")
+            self.accuracy = tf.reduce_mean(losses, name="accuracy")
 

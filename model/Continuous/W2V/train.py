@@ -13,7 +13,7 @@ from sys import exit
 # ==================================================
 
 # Model Hyperparameters
-tf.flags.DEFINE_string("word2vec", False, "Word2vec file with pre-trained embeddings (default: None)")
+tf.flags.DEFINE_string("word2vec", './../../../../W2V_pretrained_in/GoogleNews-vectors-negative300.bin', "Word2vec file with pre-trained embeddings (default: None)")
 #'/Users/micheleceru/Desktop/3Semester/NLU/PROJECT/GoogleNews-vectors-negative300.bin'
 tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0.0)")
@@ -224,7 +224,7 @@ with tf.Graph().as_default():
                     else:
                         f.read(binary_len)    
 
-            sess.run(cbof.W.assign(initW))
+            sess.run(cbof.E.assign(initW))
 
         def train_step(x_batch, y_batch):
             """
