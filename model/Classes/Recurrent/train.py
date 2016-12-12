@@ -262,19 +262,20 @@ with tf.Graph().as_default():
         for batch in ba_dev:
             count= count+1
             x_batch, y_batch = zip(*batch)
-            feed_dict = {
-              cbof_val.input_x: x_batch,
-              cbof_val.input_y: y_batch,
-              cbof_val.is_training: False
-            }
-            for i, (c, h) in enumerate(cbof_val.initial_state):
-                  feed_dict[c] = state[i].c
-                  feed_dict[h] = state[i].h
+            if len(x_batch)==FLAGS.batch_size:
+                feed_dict = {
+                  cbof_val.input_x: x_batch,
+                  cbof_val.input_y: y_batch,
+                  cbof_val.is_training: False
+                }
+                for i, (c, h) in enumerate(cbof_val.initial_state):
+                      feed_dict[c] = state[i].c
+                      feed_dict[h] = state[i].h
 
-            vals = session.run(fetches, feed_dict)
-            loss = loss + vals["loss"]
-            state = vals["final_state"]
-            accuracy = accuracy+ vals["accuracy"]
+                vals = session.run(fetches, feed_dict)
+                loss = loss + vals["loss"]
+                state = vals["final_state"]
+                accuracy = accuracy+ vals["accuracy"]
 
         loss = loss/count
         accuracy = accuracy/count
