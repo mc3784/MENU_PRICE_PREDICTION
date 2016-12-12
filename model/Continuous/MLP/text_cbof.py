@@ -69,7 +69,7 @@ class TextCBOF(object):
         with tf.name_scope("loss"):
             losses =tf.squared_difference(self.scores, self.input_y)
             #losses = tf.square(self.scores - self.input_y)
-            self.loss = tf.reduce_sum(losses) + l2_reg_lambda * l2_loss
+            self.loss = tf.reduce_mean(losses) + l2_reg_lambda * l2_loss
 
         # Accuracy
         with tf.name_scope("accuracy"):
@@ -78,5 +78,5 @@ class TextCBOF(object):
             print(self.input_y.get_shape())
             #print(self.predictions.get_shape())
             print(self.input_y) 
-            self.accuracy = tf.reduce_sum(losses, name="accuracy")
+            self.accuracy = tf.reduce_mean(losses, name="accuracy")
 
