@@ -230,7 +230,7 @@ with tf.Graph().as_default():
 
         current_step = tf.train.global_step(session, sv.global_step)
         time_str = datetime.datetime.now().isoformat()
-        print("{}: step {}, loss {:g}, acc {:g}".format(time_str, current_step, loss, accuracy))
+        print("{}: Train step {}, loss {:g}, acc {:g}".format(time_str, current_step, loss, accuracy))
         #save value for plot
 
 
@@ -245,30 +245,31 @@ with tf.Graph().as_default():
         """
         global notImproving
         start_time = time.time()
-        state = session.run(cbof_val.initial_state)
+        state = session.run(model.initial_state)
 
         loss = 0.0
         accuracy = 0.0
         fetches = {
-              "loss": cbof_val.loss,
-              "accuracy": cbof_val.accuracy,
-              "final_state": cbof_val.final_state,
+              "loss": model.loss,
+              "accuracy": model.accuracy,
+              "final_state": model.final_state,
 
           }
 
         count= 0
         ba_dev = data_helpers.batch_iter(list(zip(x_tot, y_tot)), FLAGS.batch_size, 1)
-        "Dev split created"
+        print("Dev split created")
         for batch in ba_dev:
-            count= count+1
+
             x_batch, y_batch = zip(*batch)
             if len(x_batch)==FLAGS.batch_size:
+                count= count+1
                 feed_dict = {
-                  cbof_val.input_x: x_batch,
-                  cbof_val.input_y: y_batch,
-                  cbof_val.is_training: False
+                  model.input_x: x_batch,
+                  model.input_y: y_batch,
+                  model.is_training: False
                 }
-                for i, (c, h) in enumerate(cbof_val.initial_state):
+                for i, (c, h) in enumerate(model.initial_state):
                       feed_dict[c] = state[i].c
                       feed_dict[h] = state[i].h
 
@@ -276,16 +277,18 @@ with tf.Graph().as_default():
                 loss = loss + vals["loss"]
                 state = vals["final_state"]
                 accuracy = accuracy+ vals["accuracy"]
+                #print(loss, accuracy)
 
-        loss = loss/count
-        accuracy = accuracy/count
-
+        loss = loss*1./count
+        accuracy = accuracy*1./count
 
         #step, summaries, loss, accuracy = sess.run(
         #    [ global_step, dev_summary_op,  cbof.loss, cbof.accuracy], 
         #    feed_dict, fetches)
         current_step = tf.train.global_step(session, sv.global_step)
+        print(current_step)
         time_str = datetime.datetime.now().isoformat()
+        print("Evaluation Results")
         print("{}: step {}, loss {:g}, acc {:g}".format(time_str, current_step, loss, accuracy))
     #Save value for plot:
         with open(output_file, 'a') as out:
