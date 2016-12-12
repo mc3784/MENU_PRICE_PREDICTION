@@ -13,9 +13,7 @@ from sys import exit
 # ==================================================
 
 # Model Hyperparameters
-tf.flags.DEFINE_string("word2vec", False, "Word2vec file with pre-trained embeddings (default: None)")
-#'/Users/micheleceru/Desktop/3Semester/NLU/PROJECT/GoogleNews-vectors-negative300.bin'
-tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
+tf.flags.DEFINE_integer("embedding_dim", 128, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0.0)")
 tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Prob of drop out")
 
@@ -197,34 +195,6 @@ with tf.Graph().as_default():
 
         # Initialize all variables
         sess.run(tf.initialize_all_variables())
-
-        if FLAGS.word2vec:
-            print("dentro")
-            print(FLAGS.word2vec) 
-            # initial matrix with random uniform
-            initW = np.random.uniform(-0.25,0.25,(len(vocab_processor.vocabulary_), FLAGS.embedding_dim))
-            # load any vectors from the word2vec
-            print("Load word2vec file {}\n".format(FLAGS.word2vec))
-            with open(FLAGS.word2vec, "rb") as f:
-                header = f.readline()
-                vocab_size, layer1_size = map(int, header.split())
-                binary_len = np.dtype('float32').itemsize * layer1_size
-                for line in xrange(vocab_size):
-                    word = []
-                    while True:
-                        ch = f.read(1)
-                        if ch == ' ':
-                            word = ''.join(word)
-                            break
-                        if ch != '\n':
-                            word.append(ch)   
-                    idx = vocab_processor.vocabulary_.get(word)
-                    if idx != None:
-                        initW[idx] = np.fromstring(f.read(binary_len), dtype='float32')  
-                    else:
-                        f.read(binary_len)    
-
-            sess.run(cbof.W.assign(initW))
 
         def train_step(x_batch, y_batch):
             """
