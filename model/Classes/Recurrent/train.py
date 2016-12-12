@@ -165,9 +165,9 @@ with tf.Graph().as_default():
             l2_reg_lambda=FLAGS.l2_reg_lambda
             #max_len_doc = max_document_length
             )
-        tf.scalar_summary("Training_Loss", cbof_train.loss)
-        tf.scalar_summary("Training_Accuracy", cbof_train.accuracy)
-        tf.scalar_summary("Learning_rate", cbof_train.lr)
+        #tf.scalar_summary("Training_Loss", cbof_train.loss)
+        #tf.scalar_summary("Training_Accuracy", cbof_train.accuracy)
+        #tf.scalar_summary("Learning_rate", cbof_train.lr)
 
     with tf.name_scope("Valid"):
         with tf.variable_scope("Model", reuse=True, initializer=initializer):
@@ -186,8 +186,8 @@ with tf.Graph().as_default():
             l2_reg_lambda=FLAGS.l2_reg_lambda
             #max_len_doc = max_document_length
             )
-        tf.scalar_summary("loss_dev", cbof_val.loss)
-        tf.scalar_summary("accuracy_dev", cbof_val.loss)
+        #tf.scalar_summary("loss_dev", cbof_val.loss)
+        #tf.scalar_summary("accuracy_dev", cbof_val.loss)
 
 
 
@@ -247,6 +247,8 @@ with tf.Graph().as_default():
         start_time = time.time()
         state = session.run(cbof_val.initial_state)
 
+        loss = 0.0
+        accuracy = 0.0
         fetches = {
               "loss": cbof_val.loss,
               "accuracy": cbof_val.accuracy,
@@ -254,11 +256,12 @@ with tf.Graph().as_default():
 
           }
 
-        c= 0
+        count= 0
         ba_dev = data_helpers.batch_iter(list(zip(x_tot, y_tot)), FLAGS.batch_size, 1)
-        for batch in batches:
-            c= c+1
-            x_batch, y_batch = zip(*ba_dev)
+        "Dev split created"
+        for batch in ba_dev:
+            count= count+1
+            x_batch, y_batch = zip(*batch)
             feed_dict = {
               cbof_val.input_x: x_batch,
               cbof_val.input_y: y_batch,
@@ -273,8 +276,8 @@ with tf.Graph().as_default():
             state = vals["final_state"]
             accuracy = accuracy+ vals["accuracy"]
 
-        loss = loss/c
-        accuracy = accuracy/c
+        loss = loss/count
+        accuracy = accuracy/count
 
 
         #step, summaries, loss, accuracy = sess.run(
@@ -312,7 +315,7 @@ with tf.Graph().as_default():
     checkpoint_prefix = os.path.join(checkpoint_dir, "model")
     print("Writing to {}\n".format(out_dir))
     train_summary_dir = os.path.join(out_dir, "summaries", "train")
-    sv = tf.train.Supervisor(logdir=train_summary_dir)
+    sv = tf.train.Supervisor(logdir=checkpoint_prefix)
 
     batches = data_helpers.batch_iter(list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
 
@@ -338,6 +341,6 @@ with tf.Graph().as_default():
             print("")
                 #print(loss_list)
             if current_step % FLAGS.checkpoint_every == 0:
-                path = sv.saver.save(sess, checkpoint_prefix, global_step=current_step)
-                print("Saved model checkpoint to {}\n".format(path))
+                sv.saver.save(sess, checkpoint_prefix, global_step=current_step)
+                print("Saved model checkpoint ")
 
