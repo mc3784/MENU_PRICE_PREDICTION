@@ -69,10 +69,10 @@ class LSTM_CBOW(object):
         for v in tf.all_variables():
             print(v.name)
 
-        #outputs = tf.add_n(outputs)/sequence_length
+        outputs = tf.add_n(outputs)/sequence_length
         #print("outputred: {}".format(outputs.get_shape()))  
         #with tf.name_scope("output"):
-        output = tf.reshape(tf.concat(1, outputs[0]), [-1, n_hidden])
+        output = tf.reshape(tf.concat(1, outputs), [-1, n_hidden])
         print("output2: {}".format(output.get_shape()))   
 
         #output = outputs[0]
