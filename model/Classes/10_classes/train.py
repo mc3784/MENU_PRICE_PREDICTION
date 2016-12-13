@@ -139,6 +139,7 @@ with tf.Graph().as_default():
         cbof = TextCBOF(
             sequence_length=x_train.shape[1],
             num_classes=10,
+	    batch_size = FLAGS.batch_size,
             vocab_size=len(vocab_processor.vocabulary_),
             embedding_size=FLAGS.embedding_dim,
             n_hidden=64,
