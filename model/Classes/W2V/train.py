@@ -249,6 +249,28 @@ with tf.Graph().as_default():
                     out.write("{},{:g},{:g}".format(step, loss, accuracy) + ',')
             train_summary_writer.add_summary(summaries, step)
 
+        def test_step(x_batch, y_batch):
+            """
+            A single training step
+            """
+            feed_dict = {
+              cbof.input_x: x_batch,
+              cbof.input_y: y_batch
+            }
+            _, step, summaries, loss, accuracy = sess.run(
+                [train_op, global_step, train_summary_op, cbof.loss, cbof.accuracy],
+                feed_dict)
+            time_str = datetime.datetime.now().isoformat()
+            #save value for plot
+            current_step = tf.train.global_step(sess, global_step)
+            print("test loss: {}".format(loss))
+            print("test accuracy: {}".format(accuracy))
+
+
+            with open(output_file, 'a') as out:
+                out.write("Test Results: {},{:g},{:g}".format(step, loss, accuracy) + ',')
+
+
         def dev_step(x_batch, y_batch, writer=None):
             """
             Evaluates model on a dev set
@@ -275,7 +297,9 @@ with tf.Graph().as_default():
             else:
                notImproving = 0
             if earlyStopping and notImproving > maxNotImprovingTimes:
+
                print(loss_list)
+               test_step(x_test, y_test)
                sess.close()
                exit()
             loss_list.append(loss) 
