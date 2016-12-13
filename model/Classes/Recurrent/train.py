@@ -29,6 +29,7 @@ tf.flags.DEFINE_integer("checkpoint_every", 200, "Save model after this many ste
 # Misc Parameters
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
+tf.app.flags.DEFINE_string("data_dir", "../../../data/", "Data directory")
 #tf.flags.DEFINE_boolean("use_fp16", False,
 #                  "Train using 16-bit floats instead of 32bit floats")
 
@@ -66,7 +67,7 @@ maxNotImprovingTimes = 4
 
 # Load data
 print("Loading data...")
-x_text, y = data_helpers.load_data_and_labels()
+x_text, y = data_helpers.load_data_and_labels(FLAGS.data_dir)
 print("Total number of samples: {}".format(len(x_text))) 
 numberTestSamples_1 = int(splitPercentage_1*int(len(x_text)))
 numberTestSamples_2 = int(splitPercentage_2*int(len(x_text)))

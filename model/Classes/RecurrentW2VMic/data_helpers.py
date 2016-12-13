@@ -37,16 +37,16 @@ def clean_str(string):
     return string.strip().lower()
 
 
-def load_data_and_labels():
+def load_data_and_labels(data_dir):
     """
     Loads MR polarity data from files, splits the data into words and generates labels.
     Returns split sentences and labels.
     """
-    with open('./../../../data/menuItemsNYC.csv', 'rb') as f:
+    with open(data_dir+'/menuItemsNYC.csv', 'rb') as f:
         next(f, None)
         reader = csv.reader(f)
         fileList1 = list(reader)
-    with open('./../../../data/menuItemsSF.csv', 'rb') as f:
+    with open(data_dir+'/menuItemsSF.csv', 'rb') as f:
         next(f, None)
         reader = csv.reader(f)
         fileList2 = list(reader)
