@@ -59,7 +59,7 @@ with open(output_file, 'a') as out:
 loss_list=[]
 earlyStopping = True
 notImproving = 0
-maxNotImprovingTimes = 4
+maxNotImprovingTimes = 0
 
 
 # Data Preparatopn
@@ -114,7 +114,7 @@ vocabulary = data_helpers.create_vocabulary(x_train.tolist(),max_document_length
 
 x_train = data_helpers.substitute_oov(x_train,vocabulary,max_document_length)
 x_dev = data_helpers.substitute_oov(x_dev,vocabulary,max_document_length)
-
+x_test = data_helpers.substitute_oov(x_test,vocabulary,max_document_length)
 
 
 if useBigram:
@@ -131,7 +131,7 @@ if useBigram:
 #exit()
 x_train = np.array(list(vocab_processor.fit_transform(x_train)))
 x_dev = np.array(list(vocab_processor.transform(x_dev)))
-
+x_test = np.array(list(vocab_processor.transform(x_test)))
 
 #print x_train[0]
 
@@ -190,6 +190,23 @@ with tf.Graph().as_default():
         #tf.scalar_summary("loss_dev", cbof_val.loss)
         #tf.scalar_summary("accuracy_dev", cbof_val.loss)
 
+    with tf.name_scope("Test"):
+        with tf.variable_scope("Model", reuse=True, initializer=initializer):
+            cbof_test= LSTM_CBOW(
+            sequence_length=x_train.shape[1],
+            num_classes=10,
+            vocab_size=len(vocab_processor.vocabulary_),
+            embedding_size=FLAGS.embedding_dim,
+            n_hidden=x_train.shape[1],
+            max_grad_norm = FLAGS.max_grad_norm,
+            n_layers = 1,
+            #num_filters=FLAGS.num_filters,
+            batch_size = len(x_test),
+            #use_fp16 = FLAGS.use_fp16,
+            dropout_keep_prob = 1.,
+            l2_reg_lambda=FLAGS.l2_reg_lambda
+            #max_len_doc = max_document_length
+            )
 
 
     def train_step(x_db, y_db, model, session, eval_op= None ):
@@ -303,10 +320,44 @@ with tf.Graph().as_default():
            notImproving = 0
         if earlyStopping and notImproving > maxNotImprovingTimes:
            print(loss_list)
+           test_evaluation(x_test,y_test)
            sess.close()
            exit()
         loss_list.append(loss) 
 
+    def test_evaluation(x_test, y_test,model):
+        """
+        Evaluates model on a test set
+        """
+        loss = 0.0
+        accuracy = 0.0
+        state = session.run(model.initial_state)
+        fetches = {
+              "loss": model.loss,
+              "accuracy": model.accuracy,
+              "final_state": model.final_state,
+
+          }
+
+        count= 0
+        feed_dict = {
+          model.input_x: x_test,
+          model.input_y: y_test,
+          model.is_training: False
+        }
+        for i, (c, h) in enumerate(model.initial_state):
+              feed_dict[c] = state[i].c
+              feed_dict[h] = state[i].h
+
+        vals = session.run(fetches, feed_dict)
+        loss = loss + vals["loss"]
+        state = vals["final_state"]
+        accuracy = accuracy+ vals["accuracy"]
+        print("test loss: {}".format(loss))
+        print("test accuracy: {}".format(accuracy))
+        with open(output_file, 'a') as out:
+            out.write("\nEvaluation on test set of size {}\n Loss, Accuracy\n".format(len(y_test)))
+            out.write("{:g},{:g}".format(loss, accuracy) + '\n')
     # Generate batches
     # Initialize all variables
 
