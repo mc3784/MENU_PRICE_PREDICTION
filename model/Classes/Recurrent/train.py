@@ -13,7 +13,7 @@ from sys import exit
 # ==================================================
 
 # Model Hyperparameters
-tf.flags.DEFINE_integer("embedding_dim", 128, "Dimensionality of character embedding (default: 128)")
+tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 300)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0.0)")
 tf.flags.DEFINE_float("max_grad_norm", 5.0, "Max. gradient allowed (default: 5.0)")
 tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Prob of drop out")
@@ -23,7 +23,7 @@ tf.flags.DEFINE_float("init_scale", 0.1, "Initial Scale")
 
 # Training parameters
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
-tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs (default: 200)")
+tf.flags.DEFINE_integer("num_epochs", 10, "Number of training epochs (default: 200)")
 tf.flags.DEFINE_integer("evaluate_every", 50, "Evaluate model on dev set after this many steps (default: 100)")
 tf.flags.DEFINE_integer("checkpoint_every", 200, "Save model after this many steps (default: 100)")
 # Misc Parameters
@@ -201,7 +201,7 @@ with tf.Graph().as_default():
             max_grad_norm = FLAGS.max_grad_norm,
             n_layers = 1,
             #num_filters=FLAGS.num_filters,
-            batch_size = len(x_test),
+            batch_size = FLAGS.batch_size,
             #use_fp16 = FLAGS.use_fp16,
             dropout_keep_prob = 1.,
             l2_reg_lambda=FLAGS.l2_reg_lambda
@@ -213,48 +213,49 @@ with tf.Graph().as_default():
         """
         A single training step
         """
-        start_time = time.time()
-        state = session.run(model.initial_state)
+        if len(x_db)==FLAGS.batch_size:
+            start_time = time.time()
+            state = session.run(model.initial_state)
 
-        fetches = {
-              "loss": model.loss,
-              "accuracy": model.accuracy,
-              "final_state": model.final_state,
-          }
+            fetches = {
+                  "loss": model.loss,
+                  "accuracy": model.accuracy,
+                  "final_state": model.final_state,
+              }
 
-        if eval_op is not None:
-            fetches["eval_op"] = eval_op
+            if eval_op is not None:
+                fetches["eval_op"] = eval_op
 
-        feed_dict = {
-                      model.input_x: x_db,
-                      model.input_y: y_db,
-                      model.is_training: True
-                    }
+            feed_dict = {
+                          model.input_x: x_db,
+                          model.input_y: y_db,
+                          model.is_training: True
+                        }
 
-        for i, (c, h) in enumerate(model.initial_state):
-              feed_dict[c] = state[i].c
-              feed_dict[h] = state[i].h
+            for i, (c, h) in enumerate(model.initial_state):
+                  feed_dict[c] = state[i].c
+                  feed_dict[h] = state[i].h
 
-        vals = session.run(fetches, feed_dict)
+            vals = session.run(fetches, feed_dict)
 
-        loss = vals["loss"]
-        state = vals["final_state"]
-        accuracy = vals["accuracy"]
-
-
-        #_, step, summaries, loss, accuracy = sess.run(
-        #    [train_op, global_step, train_summary_op,  cbof.loss, cbof.accuracy], 
-        #    feed_dict, fetches)
-
-        current_step = tf.train.global_step(session, sv.global_step)
-        time_str = datetime.datetime.now().isoformat()
-        print("{}: Train step {}, loss {:g}, acc {:g}".format(time_str, current_step, loss, accuracy))
-        #save value for plot
+            loss = vals["loss"]
+            state = vals["final_state"]
+            accuracy = vals["accuracy"]
 
 
-        if current_step % FLAGS.evaluate_every == 0:
-            with open(output_file, 'a') as out:
-                out.write("{},{:g},{:g}".format(current_step, loss, accuracy) + ',')
+            #_, step, summaries, loss, accuracy = sess.run(
+            #    [train_op, global_step, train_summary_op,  cbof.loss, cbof.accuracy], 
+            #    feed_dict, fetches)
+
+            current_step = tf.train.global_step(session, sv.global_step)
+            time_str = datetime.datetime.now().isoformat()
+            print("{}: Train step {}, loss {:g}, acc {:g}".format(time_str, current_step, loss, accuracy))
+            #save value for plot
+
+
+            if current_step % FLAGS.evaluate_every == 0:
+                with open(output_file, 'a') as out:
+                    out.write("{},{:g},{:g}".format(current_step, loss, accuracy) + ',')
         #train_summary_writer.add_summary(summaries, step)
 
     def dev_step(x_tot, y_tot, model, session, writer=None):
@@ -325,34 +326,45 @@ with tf.Graph().as_default():
            exit()
         loss_list.append(loss) 
 
-    def test_evaluation(x_test, y_test,model):
+    def test_evaluation(x_test, y_test,model,session):
         """
         Evaluates model on a test set
         """
+        state = session.run(model.initial_state)
+
         loss = 0.0
         accuracy = 0.0
-        state = session.run(model.initial_state)
         fetches = {
               "loss": model.loss,
               "accuracy": model.accuracy,
               "final_state": model.final_state,
 
           }
-
         count= 0
-        feed_dict = {
-          model.input_x: x_test,
-          model.input_y: y_test,
-          model.is_training: False
-        }
-        for i, (c, h) in enumerate(model.initial_state):
-              feed_dict[c] = state[i].c
-              feed_dict[h] = state[i].h
+        ba_test = data_helpers.batch_iter(list(zip(x_tot, y_tot)), FLAGS.batch_size, 1)
+        print("Dev split created")
+        for batch in ba_test:
+            x_batch, y_batch = zip(*batch)
+            if len(x_batch)==FLAGS.batch_size:
+                count= count+1
+                feed_dict = {
+                  model.input_x: x_batch,
+                  model.input_y: y_batch,
+                  model.is_training: False
+                }
+                for i, (c, h) in enumerate(model.initial_state):
+                      feed_dict[c] = state[i].c
+                      feed_dict[h] = state[i].h
 
-        vals = session.run(fetches, feed_dict)
-        loss = loss + vals["loss"]
-        state = vals["final_state"]
-        accuracy = accuracy+ vals["accuracy"]
+                vals = session.run(fetches, feed_dict)
+                loss = loss + vals["loss"]
+                state = vals["final_state"]
+                accuracy = accuracy+ vals["accuracy"]
+                #print(loss, accuracy)
+
+        loss = loss*1./count
+        accuracy = accuracy*1./count
+
         print("test loss: {}".format(loss))
         print("test accuracy: {}".format(accuracy))
         with open(output_file, 'a') as out:

@@ -38,8 +38,8 @@ print("")
 
 createFile = False
 useBigram = False
-splitPercentage_1 = 0.15
-splitPercentage_2 = 0.3
+splitPercentage_1 = 0.1
+splitPercentage_2 = 0.2
 timestamp = str(int(time.time()))
 output_file = 'results.txt.' +timestamp
 

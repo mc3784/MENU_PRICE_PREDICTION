@@ -190,55 +190,118 @@ with tf.Graph().as_default():
             )
         #tf.scalar_summary("loss_dev", cbof_val.loss)
         #tf.scalar_summary("accuracy_dev", cbof_val.loss)
-
+    with tf.name_scope("Test"):
+        with tf.variable_scope("Model", reuse=True, initializer=initializer):
+            cbof_test= LSTM_CBOW(
+            sequence_length=x_train.shape[1],
+            num_classes=10,
+            vocab_size=len(vocab_processor.vocabulary_),
+            embedding_size=FLAGS.embedding_dim,
+            n_hidden=x_train.shape[1],
+            max_grad_norm = FLAGS.max_grad_norm,
+            n_layers = 1,
+            #num_filters=FLAGS.num_filters,
+            batch_size = FLAGS.batch_size,
+            #use_fp16 = FLAGS.use_fp16,
+            dropout_keep_prob = 1.,
+            l2_reg_lambda=FLAGS.l2_reg_lambda
+            #max_len_doc = max_document_length
+            )
 
     def train_step(x_db, y_db, model, session, eval_op= None ):
         """
         A single training step
         """
-        start_time = time.time()
+        if len(x_db)==FLAGS.batch_size:
+            start_time = time.time()
+            state = session.run(model.initial_state)
+
+            fetches = {
+                  "loss": model.loss,
+                  "accuracy": model.accuracy,
+                  "final_state": model.final_state,
+              }
+
+            if eval_op is not None:
+                fetches["eval_op"] = eval_op
+
+            feed_dict = {
+                          model.input_x: x_db,
+                          model.input_y: y_db,
+                          model.is_training: True
+                        }
+
+            for i, (c, h) in enumerate(model.initial_state):
+                  feed_dict[c] = state[i].c
+                  feed_dict[h] = state[i].h
+
+            vals = session.run(fetches, feed_dict)
+
+            loss = vals["loss"]
+            state = vals["final_state"]
+            accuracy = vals["accuracy"]
+
+
+            #_, step, summaries, loss, accuracy = sess.run(
+            #    [train_op, global_step, train_summary_op,  cbof.loss, cbof.accuracy], 
+            #    feed_dict, fetches)
+
+            current_step = tf.train.global_step(session, sv.global_step)
+            time_str = datetime.datetime.now().isoformat()
+            print("{}: Train step {}, loss {:g}, acc {:g}".format(time_str, current_step, loss, accuracy))
+            #save value for plot
+
+
+            if current_step % FLAGS.evaluate_every == 0:
+                with open(output_file, 'a') as out:
+                    out.write("{},{:g},{:g}".format(current_step, loss, accuracy) + ',')
+        #train_summary_writer.add_summary(summaries, step)
+
+    def test_evaluation(x_test, y_test,model,session):
+        """
+        Evaluates model on a test set
+        """
         state = session.run(model.initial_state)
 
+        loss = 0.0
+        accuracy = 0.0
         fetches = {
               "loss": model.loss,
               "accuracy": model.accuracy,
               "final_state": model.final_state,
+
           }
+        count= 0
+        ba_test = data_helpers.batch_iter(list(zip(x_tot, y_tot)), FLAGS.batch_size, 1)
+        print("Dev split created")
+        for batch in ba_test:
+            x_batch, y_batch = zip(*batch)
+            if len(x_batch)==FLAGS.batch_size:
+                count= count+1
+                feed_dict = {
+                  model.input_x: x_batch,
+                  model.input_y: y_batch,
+                  model.is_training: False
+                }
+                for i, (c, h) in enumerate(model.initial_state):
+                      feed_dict[c] = state[i].c
+                      feed_dict[h] = state[i].h
 
-        if eval_op is not None:
-            fetches["eval_op"] = eval_op
+                vals = session.run(fetches, feed_dict)
+                loss = loss + vals["loss"]
+                state = vals["final_state"]
+                accuracy = accuracy+ vals["accuracy"]
+                #print(loss, accuracy)
 
-        feed_dict = {
-                      model.input_x: x_db,
-                      model.input_y: y_db,
-                      model.is_training: True
-                    }
+        loss = loss*1./count
+        accuracy = accuracy*1./count
 
-        for i, (c, h) in enumerate(model.initial_state):
-              feed_dict[c] = state[i].c
-              feed_dict[h] = state[i].h
+        print("test loss: {}".format(loss))
+        print("test accuracy: {}".format(accuracy))
+        with open(output_file, 'a') as out:
+            out.write("\nEvaluation on test set of size {}\n Loss, Accuracy\n".format(len(y_test)))
+            out.write("{:g},{:g}".format(loss, accuracy) + '\n')
 
-        vals = session.run(fetches, feed_dict)
-
-        loss = vals["loss"]
-        state = vals["final_state"]
-        accuracy = vals["accuracy"]
-
-
-        #_, step, summaries, loss, accuracy = sess.run(
-        #    [train_op, global_step, train_summary_op,  cbof.loss, cbof.accuracy], 
-        #    feed_dict, fetches)
-
-        current_step = tf.train.global_step(session, sv.global_step)
-        time_str = datetime.datetime.now().isoformat()
-        print("{}: Train step {}, loss {:g}, acc {:g}".format(time_str, current_step, loss, accuracy))
-        #save value for plot
-
-
-        if current_step % FLAGS.evaluate_every == 0:
-            with open(output_file, 'a') as out:
-                out.write("{},{:g},{:g}".format(current_step, loss, accuracy) + ',')
-        #train_summary_writer.add_summary(summaries, step)
 
     def dev_step(x_tot, y_tot, model, session, writer=None):
         """
@@ -303,6 +366,7 @@ with tf.Graph().as_default():
            notImproving = 0
         if earlyStopping and notImproving > maxNotImprovingTimes:
            print(loss_list)
+           test_evaluation(x_test,y_test)
            sess.close()
            exit()
         loss_list.append(loss) 
