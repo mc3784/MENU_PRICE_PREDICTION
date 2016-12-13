@@ -35,8 +35,8 @@ print("")
 
 createFile = False
 useBigram = False
-splitPercentage_1 = 0.15
-splitPercentage_2 = 0.3
+splitPercentage_1 = 0.1
+splitPercentage_2 = 0.2
 timestamp = str(int(time.time()))
 output_file = 'results.txt.' +timestamp
 
@@ -103,6 +103,7 @@ vocabulary = data_helpers.create_vocabulary(x_train.tolist(),max_document_length
 
 x_train = data_helpers.substitute_oov(x_train,vocabulary,max_document_length)
 x_dev = data_helpers.substitute_oov(x_dev,vocabulary,max_document_length)
+x_test = data_helpers.substitute_oov(x_test,vocabulary,max_document_length)
 
 
 
@@ -120,7 +121,7 @@ if useBigram:
 #exit()
 x_train = np.array(list(vocab_processor.fit_transform(x_train)))
 x_dev = np.array(list(vocab_processor.transform(x_dev)))
-
+x_test = np.array(list(vocab_processor.transform(x_test)))
 
 #print x_train[0]
 
@@ -243,9 +244,31 @@ with tf.Graph().as_default():
                notImproving = 0
             if earlyStopping and notImproving > maxNotImprovingTimes:
                print(loss_list)
+               test_evaluation(x_test,y_test)
                sess.close()
                exit()
             loss_list.append(loss) 
+
+        def test_evaluation(x_batch, y_batch):
+            """
+            Evaluates model on a test set
+            """
+            feed_dict = {
+              cbof.input_x: x_batch,
+              cbof.input_y: y_batch
+            }
+            step, summaries, loss, accuracy = sess.run(
+                [global_step, dev_summary_op, cbof.loss, cbof.accuracy],
+                feed_dict)
+        #Save value for plot:
+            print("test loss: {}".format(loss))
+            print("test accuracy: {}".format(accuracy))
+            with open(output_file, 'a') as out:
+                out.write("\nEvaluation on test set of size {}\n Loss, Accuracy\n".format(len(y_batch)))
+                out.write("{:g},{:g}".format(loss, accuracy) + '\n')
+
+
+
         # Generate batches
         batches = data_helpers.batch_iter(
             list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
