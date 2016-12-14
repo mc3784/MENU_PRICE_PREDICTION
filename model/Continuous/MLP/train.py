@@ -51,7 +51,7 @@ with open(output_file, 'a') as out:
 loss_list=[]
 earlyStopping = True
 notImproving = 0
-maxNotImprovingTimes = 0
+maxNotImprovingTimes = 4
 
 
 # Data Preparatopn
