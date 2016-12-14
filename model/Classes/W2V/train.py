@@ -14,7 +14,7 @@ from sys import exit
 
 # Model Hyperparameters
 tf.flags.DEFINE_string("word2vec", './../../../../W2V_pretrained_in/GoogleNews-vectors-negative300.bin', "Word2vec file with pre-trained embeddings (default: None)")
-tf.flags.DEFINE_string("embedding_type", 'Fixed', "Fixed embedding w2v or starting embedding (default: Fixed)")
+tf.flags.DEFINE_boolean("embedding_type_fixed", True, "Fixed embedding w2v or starting embedding (default: Fixed)")
 tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding set to 300 as in Word2Vec")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0.0)")
 tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Prob of drop out")
@@ -147,7 +147,7 @@ with tf.Graph().as_default():
             vocab_size=len(vocab_processor.vocabulary_),
             embedding_size=FLAGS.embedding_dim,
             n_hidden=64,
-            embedding_type = FLAGS.embedding_type,
+            embedding_type = FLAGS.embedding_type_fixed,
             #num_filters=FLAGS.num_filters,
             dropout_keep_prob = FLAGS.dropout_keep_prob,
             l2_reg_lambda=FLAGS.l2_reg_lambda

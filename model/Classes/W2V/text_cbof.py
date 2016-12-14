@@ -31,7 +31,7 @@ class TextCBOF(object):
 
         # Embedding layer
         with tf.device('/cpu:0'), tf.name_scope("embedding"):
-            if self.embedding_type == 'Fixed':
+            if self.embedding_type:
 
                 self.W = tf.Variable(
                     tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
