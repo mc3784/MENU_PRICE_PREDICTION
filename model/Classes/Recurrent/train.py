@@ -326,7 +326,7 @@ with tf.Graph().as_default():
            exit()
         loss_list.append(loss) 
 
-    def test_evaluation(x_test, y_test,model,session):
+    def test_evaluation(x_tot, y_tot,model,session):
         """
         Evaluates model on a test set
         """
