@@ -50,7 +50,8 @@ def load_data_and_labels(data_dir):
         next(f, None)
         reader = csv.reader(f)
         fileList2 = list(reader)
-    fileList = fileList1# + fileList2
+    fileList = fileList1 + fileList2
+
 
 
     
