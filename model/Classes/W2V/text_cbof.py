@@ -30,16 +30,16 @@ class TextCBOF(object):
         l2_loss = tf.constant(0.0)
 
         # Embedding layer
-        if self.embedding_type == 'Fixed':
-            with tf.device('/cpu:0'), tf.name_scope("embedding"):
+        with tf.device('/cpu:0'), tf.name_scope("embedding"):
+            if self.embedding_type == 'Fixed':
+
                 self.W = tf.Variable(
                     tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
                     name="E",
                     trainable = False)
                 #self.embedded_chars = tf.nn.embedding_lookup(E, self.input_x)
                 self.embedded_chars = tf.nn.embedding_lookup(self.W, self.input_x)
-        else:
-            with tf.device('/cpu:0'), tf.name_scope("embedding"):
+            else:
                 self.W = tf.Variable(
                     tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
                     name="E")
