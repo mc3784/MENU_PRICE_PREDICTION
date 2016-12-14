@@ -13,8 +13,7 @@ from sys import exit
 # ==================================================
 
 # Model Hyperparameters
-tf.flags.DEFINE_string("word2vec", None, "Word2vec file with pre-trained embeddings (default: None)")
-tf.flags.DEFINE_integer("embedding_dim", 128, "Dimensionality of character embedding (default: 128)")
+tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 300)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0.0)")
 tf.flags.DEFINE_float("max_grad_norm", 5.0, "Max. gradient allowed (default: 5.0)")
 tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Prob of drop out")
@@ -24,7 +23,7 @@ tf.flags.DEFINE_float("init_scale", 0.1, "Initial Scale")
 
 # Training parameters
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
-tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs (default: 200)")
+tf.flags.DEFINE_integer("num_epochs", 10, "Number of training epochs (default: 200)")
 tf.flags.DEFINE_integer("evaluate_every", 50, "Evaluate model on dev set after this many steps (default: 100)")
 tf.flags.DEFINE_integer("checkpoint_every", 200, "Save model after this many steps (default: 100)")
 # Misc Parameters
@@ -115,7 +114,7 @@ vocabulary = data_helpers.create_vocabulary(x_train.tolist(),max_document_length
 
 x_train = data_helpers.substitute_oov(x_train,vocabulary,max_document_length)
 x_dev = data_helpers.substitute_oov(x_dev,vocabulary,max_document_length)
-
+x_test = data_helpers.substitute_oov(x_test,vocabulary,max_document_length)
 
 
 if useBigram:
@@ -132,7 +131,7 @@ if useBigram:
 #exit()
 x_train = np.array(list(vocab_processor.fit_transform(x_train)))
 x_dev = np.array(list(vocab_processor.transform(x_dev)))
-
+x_test = np.array(list(vocab_processor.transform(x_test)))
 
 #print x_train[0]
 
@@ -191,56 +190,75 @@ with tf.Graph().as_default():
         #tf.scalar_summary("loss_dev", cbof_val.loss)
         #tf.scalar_summary("accuracy_dev", cbof_val.loss)
 
+    with tf.name_scope("Test"):
+        with tf.variable_scope("Model", reuse=True, initializer=initializer):
+            cbof_test= LSTM_CBOW(
+            sequence_length=x_train.shape[1],
+            num_classes=1,
+            vocab_size=len(vocab_processor.vocabulary_),
+            embedding_size=FLAGS.embedding_dim,
+            n_hidden=x_train.shape[1],
+            max_grad_norm = FLAGS.max_grad_norm,
+            n_layers = 1,
+            #num_filters=FLAGS.num_filters,
+            batch_size = FLAGS.batch_size,
+            #use_fp16 = FLAGS.use_fp16,
+            dropout_keep_prob = 1.,
+            l2_reg_lambda=FLAGS.l2_reg_lambda
+            #max_len_doc = max_document_length
+            )
+
 
     def train_step(x_db, y_db, model, session, eval_op= None ):
         """
         A single training step
         """
-        start_time = time.time()
-        state = session.run(model.initial_state)
+        if len(x_db)==FLAGS.batch_size:
+            start_time = time.time()
+            state = session.run(model.initial_state)
 
-        fetches = {
-              "loss": model.loss,
-              "accuracy": model.accuracy,
-              "final_state": model.final_state,
-          }
+            fetches = {
+                  "loss": model.loss,
+                  "accuracy": model.accuracy,
+                  "final_state": model.final_state,
+              }
 
-        if eval_op is not None:
-            fetches["eval_op"] = eval_op
+            if eval_op is not None:
+                fetches["eval_op"] = eval_op
 
-        feed_dict = {
-                      model.input_x: x_db,
-                      model.input_y: y_db,
-                      model.is_training: True
-                    }
+            feed_dict = {
+                          model.input_x: x_db,
+                          model.input_y: y_db,
+                          model.is_training: True
+                        }
 
-        for i, (c, h) in enumerate(model.initial_state):
-              feed_dict[c] = state[i].c
-              feed_dict[h] = state[i].h
+            for i, (c, h) in enumerate(model.initial_state):
+                  feed_dict[c] = state[i].c
+                  feed_dict[h] = state[i].h
 
-        vals = session.run(fetches, feed_dict)
+            vals = session.run(fetches, feed_dict)
 
-        loss = vals["loss"]
-        state = vals["final_state"]
-        accuracy = vals["accuracy"]
-
-
-        #_, step, summaries, loss, accuracy = sess.run(
-        #    [train_op, global_step, train_summary_op,  cbof.loss, cbof.accuracy], 
-        #    feed_dict, fetches)
-
-        current_step = tf.train.global_step(session, sv.global_step)
-        time_str = datetime.datetime.now().isoformat()
-        print("{}: Train step {}, loss {:g}, acc {:g}".format(time_str, current_step, loss, accuracy))
-        #save value for plot
+            loss = vals["loss"]
+            state = vals["final_state"]
+            accuracy = vals["accuracy"]
 
 
-        if current_step % FLAGS.evaluate_every == 0:
-            with open(output_file, 'a') as out:
-                out.write("{},{:g},{:g}".format(current_step, loss, accuracy) + ',')
+            #_, step, summaries, loss, accuracy = sess.run(
+            #    [train_op, global_step, train_summary_op,  cbof.loss, cbof.accuracy], 
+            #    feed_dict, fetches)
+
+            current_step = tf.train.global_step(session, sv.global_step)
+            time_str = datetime.datetime.now().isoformat()
+            print("{}: Train step {}, loss {:g}, acc {:g}".format(time_str, current_step, loss, accuracy))
+            #save value for plot
+
+
+            if current_step % FLAGS.evaluate_every == 0:
+                with open(output_file, 'a') as out:
+                    out.write("{},{:g},{:g}".format(current_step, loss, accuracy) + ',')
         #train_summary_writer.add_summary(summaries, step)
 
-    def dev_step(x_tot, y_tot, model, session, writer=None):
+    def dev_step(x_tot, y_tot, model, model_2, session, writer=None):
         """
         Evaluates model on a dev set
         """
@@ -303,10 +321,55 @@ with tf.Graph().as_default():
            notImproving = 0
         if earlyStopping and notImproving > maxNotImprovingTimes:
            print(loss_list)
+           test_evaluation(x_test,y_test, model_2, session)
            sess.close()
            exit()
         loss_list.append(loss) 
 
+    def test_evaluation(x_test, y_test,model,session):
+        """
+        Evaluates model on a test set
+        """
+        state = session.run(model.initial_state)
+
+        loss = 0.0
+        accuracy = 0.0
+        fetches = {
+              "loss": model.loss,
+              "accuracy": model.accuracy,
+              "final_state": model.final_state,
+
+          }
+        count= 0
+        ba_test = data_helpers.batch_iter(list(zip(x_test, y_test)), FLAGS.batch_size, 1)
+        print("Dev split created")
+        for batch in ba_test:
+            x_batch, y_batch = zip(*batch)
+            if len(x_batch)==FLAGS.batch_size:
+                count= count+1
+                feed_dict = {
+                  model.input_x: x_batch,
+                  model.input_y: y_batch,
+                  model.is_training: False
+                }
+                for i, (c, h) in enumerate(model.initial_state):
+                      feed_dict[c] = state[i].c
+                      feed_dict[h] = state[i].h
+
+                vals = session.run(fetches, feed_dict)
+                loss = loss + vals["loss"]
+                state = vals["final_state"]
+                accuracy = accuracy+ vals["accuracy"]
+                #print(loss, accuracy)
+
+        loss = loss*1./count
+        accuracy = accuracy*1./count
+
+        print("test loss: {}".format(loss))
+        print("test accuracy: {}".format(accuracy))
+        with open(output_file, 'a') as out:
+            out.write("\nEvaluation on test set of size {}\n Loss, Accuracy\n".format(len(y_test)))
+            out.write("{:g},{:g}".format(loss, accuracy) + '\n')
     # Generate batches
     # Initialize all variables
 
@@ -325,35 +388,6 @@ with tf.Graph().as_default():
     batches = data_helpers.batch_iter(list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
 
     with sv.managed_session() as sess:
-        if FLAGS.word2vec:
-            print("dentro")
-            print(FLAGS.word2vec) 
-            # initial matrix with random uniform
-            initW = np.random.uniform(-0.25,0.25,(len(vocab_processor.vocabulary_), FLAGS.embedding_dim))
-            # load any vectors from the word2vec
-            print("Load word2vec file {}\n".format(FLAGS.word2vec))
-            with open(FLAGS.word2vec, "rb") as f:
-                header = f.readline()
-                vocab_size, layer1_size = map(int, header.split())
-                binary_len = np.dtype('float32').itemsize * layer1_size
-                for line in xrange(vocab_size):
-                    word = []
-                    while True:
-                        ch = f.read(1)
-                        if ch == ' ':
-                            word = ''.join(word)
-                            break
-                        if ch != '\n':
-                            word.append(ch)   
-                    idx = vocab_processor.vocabulary_.get(word)
-                    if idx != None:
-                        initW[idx] = np.fromstring(f.read(binary_len), dtype='float32')  
-                    else:
-                        f.read(binary_len)    
-
-            #sess.run(cbof_train.embedding.assign(initW))
-            cbof_train.assign_em(sess, initW)
-
         i=1
         c=0
         for batch in batches:
@@ -371,7 +405,7 @@ with tf.Graph().as_default():
 
             if current_step % FLAGS.evaluate_every == 0:
                 print("\nEvaluation: notImproving: {}".format(notImproving))
-                dev_step(x_dev, y_dev, cbof_val, sess)
+                dev_step(x_dev, y_dev, cbof_val, cbof_test,sess)
             print("")
                 #print(loss_list)
             if current_step % FLAGS.checkpoint_every == 0:
