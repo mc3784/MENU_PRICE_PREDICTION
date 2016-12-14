@@ -257,7 +257,7 @@ with tf.Graph().as_default():
                     out.write("{},{:g},{:g}".format(current_step, loss, accuracy) + ',')
         #train_summary_writer.add_summary(summaries, step)
 
-    def test_evaluation(x_test, y_test,model,session):
+    def test_evaluation(x_tot, y_tot,model,session):
         """
         Evaluates model on a test set
         """
@@ -303,7 +303,7 @@ with tf.Graph().as_default():
             out.write("{:g},{:g}".format(loss, accuracy) + '\n')
 
 
-    def dev_step(x_tot, y_tot, model, session, writer=None):
+    def dev_step(x_tot, y_tot, model, model_2, session, writer=None):
         """
         Evaluates model on a dev set
         """
@@ -366,7 +366,7 @@ with tf.Graph().as_default():
            notImproving = 0
         if earlyStopping and notImproving > maxNotImprovingTimes:
            print(loss_list)
-           test_evaluation(x_test,y_test)
+           test_evaluation(x_test,y_test, model_2,session)
            sess.close()
            exit()
         loss_list.append(loss) 
@@ -435,7 +435,7 @@ with tf.Graph().as_default():
 
             if current_step % FLAGS.evaluate_every == 0:
                 print("\nEvaluation: notImproving: {}".format(notImproving))
-                dev_step(x_dev, y_dev, cbof_val, sess)
+                dev_step(x_dev, y_dev, cbof_val, cbof_test, sess)
             print("")
                 #print(loss_list)
             if current_step % FLAGS.checkpoint_every == 0:
