@@ -253,13 +253,30 @@ with tf.Graph().as_default():
             """
             A single training step
             """
-            feed_dict = {
-              cbof.input_x: x_batch,
-              cbof.input_y: y_batch
-            }
-            _, step, summaries, loss, accuracy = sess.run(
-                [train_op, global_step, train_summary_op, cbof.loss, cbof.accuracy],
-                feed_dict)
+            batches = data_helpers.batch_iter(
+            list(zip(x_batch, y_batch)), FLAGS.batch_size, 1)
+            global notImproving
+
+            loss = 0.
+            accuracy = 0.
+            c =1
+            for batch in batches:
+                if len(batch) == FLAGS.batch_size:
+                    x, y = zip(*batch)
+                    feed_dict = {
+                      cbof.input_x: x,
+                      cbof.input_y: y
+                    }
+                    step, summaries, loss_test, accuracy_test = sess.run(
+                        [global_step, dev_summary_op, cbof.loss, cbof.accuracy],
+                        feed_dict)
+                    loss = loss + loss_test
+                    accuracy = accuracy + accuracy_test
+                    c= c+1
+
+            loss = loss/c
+            accuracy = accuracy/c
+
             time_str = datetime.datetime.now().isoformat()
             #save value for plot
             current_step = tf.train.global_step(sess, global_step)
@@ -275,14 +292,30 @@ with tf.Graph().as_default():
             """
             Evaluates model on a dev set
             """
+            batches = data_helpers.batch_iter(
+            list(zip(x_batch, y_batch)), FLAGS.batch_size, 1)
             global notImproving
-            feed_dict = {
-              cbof.input_x: x_batch,
-              cbof.input_y: y_batch
-            }
-            step, summaries, loss, accuracy = sess.run(
-                [global_step, dev_summary_op, cbof.loss, cbof.accuracy],
-                feed_dict)
+
+            loss = 0.
+            accuracy = 0.
+            c =1
+            for batch in batches:
+                if len(batch) == FLAGS.batch_size:
+                    x, y = zip(*batch)
+                    feed_dict = {
+                      cbof.input_x: x,
+                      cbof.input_y: y
+                    }
+                    step, summaries, loss_dev, accuracy_dev = sess.run(
+                        [global_step, dev_summary_op, cbof.loss, cbof.accuracy],
+                        feed_dict)
+                    loss = loss + loss_dev
+                    accuracy = accuracy + accuracy_dev
+                    c= c+1
+
+            loss = loss/c
+            accuracy = accuracy/c
+
             time_str = datetime.datetime.now().isoformat()
             print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
 	    #Save value for plot:
