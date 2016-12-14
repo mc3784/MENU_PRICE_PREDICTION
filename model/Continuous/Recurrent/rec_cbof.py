@@ -102,7 +102,8 @@ class LSTM_CBOW(object):
         # Accuracy
         #self.predictions = tf.argmax(self.logits, 1, name="predictions")
         #correct_predictions = tf.equal(self.predictions, tf.argmax(self.input_y, 1))
-        self.accuracy = self.loss #tf.reduce_mean(tf.cast(correct_predictions, "float"), name="accuracy")
+        #self.accuracy = self.loss #tf.reduce_mean(tf.cast(correct_predictions, "float"), name="accuracy")
+        self.accuracy = tf.reduce_mean(tf.abs(self.logits-self.input_y), name="accuracy")
         print("acc: {}".format(self.accuracy))
 
 
