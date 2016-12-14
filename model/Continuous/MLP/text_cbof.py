@@ -78,5 +78,5 @@ class TextCBOF(object):
             print(self.input_y.get_shape())
             #print(self.predictions.get_shape())
             print(self.input_y) 
-            self.accuracy = tf.reduce_mean(losses, name="accuracy")
+            self.accuracy = tf.reduce_mean(tf.abs(self.scores-self.input_y), name="accuracy")
 
