@@ -271,6 +271,7 @@ with tf.Graph().as_default():
           }
         count= 0
         ba_test = data_helpers.batch_iter(list(zip(x_tot, y_tot)), FLAGS.batch_size, 1)
+
         print("Dev split created")
         for batch in ba_test:
             x_batch, y_batch = zip(*batch)
@@ -301,7 +302,7 @@ with tf.Graph().as_default():
             out.write("{:g},{:g}".format(loss, accuracy) + '\n')
 
 
-    def dev_step(x_tot, y_tot, model, model_2, session, writer=None):
+    def dev_step(x_tot, y_tot, model, xtest, ytest, model_2, session, writer=None):
         """
         Evaluates model on a dev set
         """
@@ -364,7 +365,7 @@ with tf.Graph().as_default():
            notImproving = 0
         if earlyStopping and notImproving > maxNotImprovingTimes:
            print(loss_list)
-           test_evaluation(x_test,y_test, model_2,session)
+           test_evaluation(xtest,ytest, model_2,session)
            sess.close()
            exit()
         loss_list.append(loss) 
@@ -433,7 +434,7 @@ with tf.Graph().as_default():
 
             if current_step % FLAGS.evaluate_every == 0:
                 print("\nEvaluation: notImproving: {}".format(notImproving))
-                dev_step(x_dev, y_dev, cbof_val, cbof_test, sess)
+                dev_step(x_dev, y_dev, cbof_val, x_test, y_test, cbof_test, sess)
             print("")
                 #print(loss_list)
             if current_step % FLAGS.checkpoint_every == 0:
