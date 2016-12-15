@@ -14,6 +14,7 @@ from sys import exit
 
 # Model Hyperparameters
 tf.flags.DEFINE_string("word2vec", None, "Word2vec file with pre-trained embeddings (default: None)")
+tf.flags.DEFINE_boolean("embedding_type_fixed", True, "Fixed embedding w2v or starting embedding (default: Fixed)")
 tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0.0)")
 tf.flags.DEFINE_float("max_grad_norm", 5.0, "Max. gradient allowed (default: 5.0)")
@@ -164,7 +165,8 @@ with tf.Graph().as_default():
             batch_size = FLAGS.batch_size,
             #use_fp16 = FLAGS.use_fp16,
             dropout_keep_prob = FLAGS.dropout_keep_prob,
-            l2_reg_lambda=FLAGS.l2_reg_lambda
+            l2_reg_lambda=FLAGS.l2_reg_lambda, 
+            embedding_type = FLAGS.embedding_type_fixed
             #max_len_doc = max_document_length
             )
         #tf.scalar_summary("Training_Loss", cbof_train.loss)
@@ -185,7 +187,8 @@ with tf.Graph().as_default():
             batch_size = FLAGS.batch_size,
             #use_fp16 = FLAGS.use_fp16,
             dropout_keep_prob = 1.,
-            l2_reg_lambda=FLAGS.l2_reg_lambda
+            l2_reg_lambda=FLAGS.l2_reg_lambda,
+            embedding_type = FLAGS.embedding_type_fixed
             #max_len_doc = max_document_length
             )
         #tf.scalar_summary("loss_dev", cbof_val.loss)
@@ -204,7 +207,8 @@ with tf.Graph().as_default():
             batch_size = FLAGS.batch_size,
             #use_fp16 = FLAGS.use_fp16,
             dropout_keep_prob = 1.,
-            l2_reg_lambda=FLAGS.l2_reg_lambda
+            l2_reg_lambda=FLAGS.l2_reg_lambda,
+            embedding_type = FLAGS.embedding_type_fixed
             #max_len_doc = max_document_length
             )
 
