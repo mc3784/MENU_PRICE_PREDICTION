@@ -26,8 +26,13 @@ class LSTM_CBOW(object):
         self.embedding_type = embedding_type
         # Keeping track of l2 regularization loss (optional)
         #l2_loss = tf.constant(0.0)
-
         lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(n_hidden, forget_bias=0.0, state_is_tuple=True)
+        if self.is_training is not None:
+          lstm_cell = tf.nn.rnn_cell.DropoutWrapper(
+              lstm_cell, output_keep_prob=self.dropout_keep_prob)
+        cell = tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * n_layers, state_is_tuple=True)
+
+        self._initial_state = cell.zero_state(batch_size, tf.float32)
         # Embedding layer
         with tf.device('/cpu:0'):
             if self.embedding_type ==True:
@@ -49,11 +54,7 @@ class LSTM_CBOW(object):
                 #self.embedded_chars = tf.nn.embedding_lookup(E, self.input_x)
                 embedded_chars = tf.nn.embedding_lookup(self.embedding, self.input_x) 
 
-        # Embedding layer
-        with tf.device('/cpu:0'):
-            self.embedding = tf.get_variable(
-          "embedding", [vocab_size, embedding_size], dtype=tf.float32, trainable=True)
-            embedded_chars = tf.nn.embedding_lookup(self.embedding, self.input_x)
+
 
             #self.embedded_chars_expanded = tf.expand_dims(self.embedded_chars, -1)
         print("inputx: {}".format(self.input_x.get_shape()))

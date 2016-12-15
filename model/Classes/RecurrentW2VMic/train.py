@@ -134,12 +134,6 @@ if useBigram:
 x_train = np.array(list(vocab_processor.fit_transform(x_train)))
 x_dev = np.array(list(vocab_processor.transform(x_dev)))
 
-
-#print x_train[0]
-
-#exit()
-
-
 # Training
 # ==================================================
 
