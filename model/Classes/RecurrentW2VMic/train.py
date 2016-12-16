@@ -14,6 +14,7 @@ from sys import exit
 
 # Model Hyperparameters
 tf.flags.DEFINE_string("word2vec", None, "Word2vec file with pre-trained embeddings (default: None)")
+tf.flags.DEFINE_boolean("embedding_type_fixed", True, "Fixed embedding w2v or starting embedding (default: Fixed)")
 tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0.0)")
 tf.flags.DEFINE_float("max_grad_norm", 5.0, "Max. gradient allowed (default: 5.0)")
@@ -133,12 +134,6 @@ if useBigram:
 x_train = np.array(list(vocab_processor.fit_transform(x_train)))
 x_dev = np.array(list(vocab_processor.transform(x_dev)))
 
-
-#print x_train[0]
-
-#exit()
-
-
 # Training
 # ==================================================
 
@@ -164,7 +159,8 @@ with tf.Graph().as_default():
             batch_size = FLAGS.batch_size,
             #use_fp16 = FLAGS.use_fp16,
             dropout_keep_prob = FLAGS.dropout_keep_prob,
-            l2_reg_lambda=FLAGS.l2_reg_lambda
+            l2_reg_lambda=FLAGS.l2_reg_lambda, 
+            embedding_type = FLAGS.embedding_type_fixed
             #max_len_doc = max_document_length
             )
         #tf.scalar_summary("Training_Loss", cbof_train.loss)
@@ -185,7 +181,8 @@ with tf.Graph().as_default():
             batch_size = FLAGS.batch_size,
             #use_fp16 = FLAGS.use_fp16,
             dropout_keep_prob = 1.,
-            l2_reg_lambda=FLAGS.l2_reg_lambda
+            l2_reg_lambda=FLAGS.l2_reg_lambda,
+            embedding_type = FLAGS.embedding_type_fixed
             #max_len_doc = max_document_length
             )
         #tf.scalar_summary("loss_dev", cbof_val.loss)
@@ -204,7 +201,8 @@ with tf.Graph().as_default():
             batch_size = FLAGS.batch_size,
             #use_fp16 = FLAGS.use_fp16,
             dropout_keep_prob = 1.,
-            l2_reg_lambda=FLAGS.l2_reg_lambda
+            l2_reg_lambda=FLAGS.l2_reg_lambda,
+            embedding_type = FLAGS.embedding_type_fixed
             #max_len_doc = max_document_length
             )
 
@@ -273,6 +271,7 @@ with tf.Graph().as_default():
           }
         count= 0
         ba_test = data_helpers.batch_iter(list(zip(x_tot, y_tot)), FLAGS.batch_size, 1)
+
         print("Dev split created")
         for batch in ba_test:
             x_batch, y_batch = zip(*batch)
@@ -303,7 +302,7 @@ with tf.Graph().as_default():
             out.write("{:g},{:g}".format(loss, accuracy) + '\n')
 
 
-    def dev_step(x_tot, y_tot, model, model_2, session, writer=None):
+    def dev_step(x_tot, y_tot, model, xtest, ytest, model_2, session, writer=None):
         """
         Evaluates model on a dev set
         """
@@ -366,7 +365,7 @@ with tf.Graph().as_default():
            notImproving = 0
         if earlyStopping and notImproving > maxNotImprovingTimes:
            print(loss_list)
-           test_evaluation(x_test,y_test, model_2,session)
+           test_evaluation(xtest,ytest, model_2,session)
            sess.close()
            exit()
         loss_list.append(loss) 
@@ -435,7 +434,7 @@ with tf.Graph().as_default():
 
             if current_step % FLAGS.evaluate_every == 0:
                 print("\nEvaluation: notImproving: {}".format(notImproving))
-                dev_step(x_dev, y_dev, cbof_val, cbof_test, sess)
+                dev_step(x_dev, y_dev, cbof_val, x_test, y_test, cbof_test, sess)
             print("")
                 #print(loss_list)
             if current_step % FLAGS.checkpoint_every == 0:

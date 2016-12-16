@@ -12,7 +12,7 @@ class LSTM_CBOW(object):
     """
     def __init__(
       self, sequence_length, num_classes, vocab_size, max_grad_norm, batch_size, dropout_keep_prob,
-      embedding_size, n_hidden, n_layers, l2_reg_lambda=0.0):
+      embedding_size, embedding_type, n_hidden, n_layers, l2_reg_lambda=0.0):
 
         self.is_training = tf.placeholder(tf.bool, name="is_training")
         #l2_loss = tf.constant(0.0)
@@ -23,10 +23,9 @@ class LSTM_CBOW(object):
         self.dropout_keep_prob = dropout_keep_prob
 
         self.input_y = tf.placeholder(tf.int32, [batch_size, num_classes], name="input_y")
-
+        self.embedding_type = embedding_type
         # Keeping track of l2 regularization loss (optional)
         #l2_loss = tf.constant(0.0)
-
         lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(n_hidden, forget_bias=0.0, state_is_tuple=True)
         if self.is_training is not None:
           lstm_cell = tf.nn.rnn_cell.DropoutWrapper(
@@ -34,12 +33,28 @@ class LSTM_CBOW(object):
         cell = tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * n_layers, state_is_tuple=True)
 
         self._initial_state = cell.zero_state(batch_size, tf.float32)
-
         # Embedding layer
         with tf.device('/cpu:0'):
-            self.embedding = tf.get_variable(
-          "embedding", [vocab_size, embedding_size], dtype=tf.float32, trainable=True)
-            embedded_chars = tf.nn.embedding_lookup(self.embedding, self.input_x)
+            if self.embedding_type ==True:
+                print("Using a Fixed Word2Vec Embedding Matrix")
+                self.embedding = tf.Variable(
+                                    tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
+                                    #name = "embedding",
+                                    dtype=tf.float32,
+                                    trainable=False)
+                embedded_chars = tf.nn.embedding_lookup(self.embedding, self.input_x)
+            else:
+                print("Starting with a Word2Vec Embedding Matrix")
+                self.embedding = tf.Variable(
+                                    tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
+                                    #name = "embedding",
+                                    dtype=tf.float32,
+                                    trainable = True)
+                                        
+                #self.embedded_chars = tf.nn.embedding_lookup(E, self.input_x)
+                embedded_chars = tf.nn.embedding_lookup(self.embedding, self.input_x) 
+
+
 
             #self.embedded_chars_expanded = tf.expand_dims(self.embedded_chars, -1)
         print("inputx: {}".format(self.input_x.get_shape()))
