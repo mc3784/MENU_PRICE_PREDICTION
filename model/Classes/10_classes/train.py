@@ -9,6 +9,7 @@ import data_helpers
 from text_cbof import TextCBOF
 from tensorflow.contrib import learn
 from sys import exit
+import pickle
 # Parameters
 # ==================================================
 
@@ -50,7 +51,7 @@ with open(output_file, 'a') as out:
 loss_list=[]
 earlyStopping = True
 notImproving = 0
-maxNotImprovingTimes = 4
+maxNotImprovingTimes = 0
 
 
 # Data Preparatopn
@@ -257,9 +258,13 @@ with tf.Graph().as_default():
               cbof.input_x: x_batch,
               cbof.input_y: y_batch
             }
-            step, summaries, loss, accuracy = sess.run(
-                [global_step, dev_summary_op, cbof.loss, cbof.accuracy],
+            step, summaries, loss, accuracy,predicted_labels,true_labels = sess.run(
+                [global_step, dev_summary_op, cbof.loss, cbof.accuracy,cbof.predicted_labels,cbof.true_labels],
                 feed_dict)
+            print predicted_labels
+            print true_labels
+            pickle.dump(true_labels, open("true_labels.p", "wb"))
+            pickle.dump(predicted_labels, open("predicted_labels.p", "wb"))
         #Save value for plot:
             print("test loss: {}".format(loss))
             print("test accuracy: {}".format(accuracy))

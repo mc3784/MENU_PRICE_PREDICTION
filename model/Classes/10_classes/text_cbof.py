@@ -78,4 +78,6 @@ class TextCBOF(object):
             print(self.predictions.get_shape())
             print(self.input_y) 
             self.accuracy = tf.reduce_mean(tf.cast(correct_predictions, "float"), name="accuracy")
+            self.predicted_labels = self.predictions
+            self.true_labels =  tf.argmax(self.input_y, 1)
 
