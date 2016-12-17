@@ -21,10 +21,10 @@ FLAGS = tf.flags.FLAGS
 
 def create_model(session,checkpoint_file):
     model = TextCBOF(
-        sequence_length=27,
-        num_classes=10,
-    	batch_size = FLAGS.batch_size,
-        vocab_size=241,#len(vocab_processor.vocabulary_),
+        sequence_length=185,
+        num_classes=1,
+    	#batch_size = FLAGS.batch_size,
+        vocab_size=7614,#len(vocab_processor.vocabulary_),
         embedding_size=FLAGS.embedding_dim,
         n_hidden=64,
         #num_filters=FLAGS.num_filters,
@@ -34,12 +34,13 @@ def create_model(session,checkpoint_file):
 
     model.saver.restore(session, checkpoint_file)
     return model
-model_path="model/Classes/10_classes/runs/1481925866/"
-vocab_processor = learn.preprocessing.VocabularyProcessor(27)
+#model_path="model/Classes/10_classes/runs/1481925866/"
+model_path="/scratch/mc3784/Continuous/MLP/run-9314686/runs/1481686692"
+vocab_processor = learn.preprocessing.VocabularyProcessor(185)
 vocab = vocab_processor.restore(model_path+"/vocab")
-text=['Two Eggs with apple wood smoked bacon']
-text = np.array(list(vocab.transform(text)))
-print text
+#text=['Two Eggs with apple wood smoked bacon']
+#text = np.array(list(vocab.transform(text)))
+#print text
 
 sys.stdout.write("> ")
 sys.stdout.flush()
@@ -57,8 +58,8 @@ with tf.Session() as sess:
 		feed_dict = {
 		    model.input_x: text
 		}
-		scores,result = sess.run([model.scores,model.predictions],feed_dict)
-		print result
+		scores = sess.run([model.scores],feed_dict)
+		print scores
 		print "> ",
 		sys.stdout.flush()
 		sentence = sys.stdin.readline()
