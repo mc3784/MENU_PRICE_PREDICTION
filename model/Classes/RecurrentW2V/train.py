@@ -75,8 +75,8 @@ numberTestSamples_2 = int(splitPercentage_2*int(len(x_text)))
 #print("Number of test samples: {}".format(numberTestSamples)) 
 
 # Build vocabulary
-max_document_length = max([len(x.split(" ")) for x in x_text])
-print("max_document_length:")
+max_document_length = np.percentile([len(x.split(" ")) for x in x_text], 80)
+print("max_document_length p80:")
 print(max_document_length) 
 #max_document_length = 70
 print("max_document_length: {} ".format(max_document_length)) 
