@@ -1,3 +1,4 @@
+
 #! /usr/bin/env python
 
 import tensorflow as tf
@@ -5,6 +6,7 @@ import numpy as np
 import os
 import time
 import datetime
+import pickle
 import data_helpers
 from rec_cbof import LSTM_CBOW
 from tensorflow.contrib import learn
@@ -104,8 +106,6 @@ print("Train/Dev/Test split: {:d}/{:d}/{:d}".format(len(y_train), len(y_dev), le
 vocabulary = data_helpers.create_vocabulary(x_train.tolist(),max_document_length)
 
 
-
-
 #vocabulary_file='vocabulary.txt.'+timestamp
 #with open(vocabulary_file, 'w') as thefile:
 #    for item in vocabulary:
@@ -136,6 +136,9 @@ x_test = np.array(list(vocab_processor.transform(x_test)))
 #print x_train[0]
 
 #exit()
+
+print("Vocab size")
+print(len(vocab_processor.vocabulary_))
 
 
 # Training
@@ -338,10 +341,14 @@ with tf.Graph().as_default():
               "loss": model.loss,
               "accuracy": model.accuracy,
               "final_state": model.final_state,
+              "predicted_labels": model.predicted_labels,
+              "true_labels": model.true_labels
 
           }
         count= 0
         ba_test = data_helpers.batch_iter(list(zip(x_tot, y_tot)), FLAGS.batch_size, 1)
+        pred_lab = []
+        true_lab = []
         print("Dev split created")
         for batch in ba_test:
             x_batch, y_batch = zip(*batch)
@@ -360,6 +367,8 @@ with tf.Graph().as_default():
                 loss = loss + vals["loss"]
                 state = vals["final_state"]
                 accuracy = accuracy+ vals["accuracy"]
+                pred_lab.append(vals["predicted_labels"])
+                true_lab.append(vals["true_labels"])
                 #print(loss, accuracy)
 
         loss = loss*1./count
@@ -370,6 +379,9 @@ with tf.Graph().as_default():
         with open(output_file, 'a') as out:
             out.write("\nEvaluation on test set of size {}\n Loss, Accuracy\n".format(len(y_test)))
             out.write("{:g},{:g}".format(loss, accuracy) + '\n')
+
+        pickle.dump(true_labels, open("true_labels.p", "wb"))
+        pickle.dump(predicted_labels, open("predicted_labels.p", "wb"))
     # Generate batches
     # Initialize all variables
 
