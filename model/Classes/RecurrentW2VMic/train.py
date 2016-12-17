@@ -302,8 +302,8 @@ with tf.Graph().as_default():
         with open(output_file, 'a') as out:
             out.write("\nEvaluation on test set of size {}\n Loss, Accuracy\n".format(len(y_test)))
             out.write("{:g},{:g}".format(loss, accuracy) + '\n')
-        pickle.dump(true_labels, open("true_labels.p", "wb"))
-        pickle.dump(predicted_labels, open("predicted_labels.p", "wb"))
+        pickle.dump(true_lab, open("true_labels.p", "wb"))
+        pickle.dump(pred_lab, open("predicted_labels.p", "wb"))
 
     def dev_step(x_tot, y_tot, model, xtest, ytest, model_2, session, writer=None):
         """
