@@ -119,6 +119,8 @@ class LSTM_CBOW(object):
         self.accuracy = tf.reduce_mean(tf.cast(correct_predictions, "float"), name="accuracy")
         print("acc: {}".format(self.accuracy))
 
+        self.predicted_labels = self.predictions
+        self.true_labels =  tf.argmax(self.input_y, 1)
 
         if self.is_training is None:
           return

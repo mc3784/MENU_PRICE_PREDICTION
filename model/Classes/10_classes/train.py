@@ -51,7 +51,7 @@ with open(output_file, 'a') as out:
 loss_list=[]
 earlyStopping = True
 notImproving = 0
-maxNotImprovingTimes = 0
+maxNotImprovingTimes = 4
 
 
 # Data Preparatopn
@@ -66,7 +66,7 @@ numberTestSamples_2 = int(splitPercentage_2*int(len(x_text)))
 #print("Number of test samples: {}".format(numberTestSamples)) 
 
 # Build vocabulary
-max_document_length = max([len(x.split(" ")) for x in x_text])
+max_document_length = int(np.percentile([len(x.split(" ")) for x in x_text],95))
 print("max_document_length:")
 print(max_document_length) 
 #max_document_length = 70

@@ -33,7 +33,7 @@ def clean_str(string):
     string = re.sub(r"\?", " \? ", string)
     string = re.sub(r"\s{2,}", " ", string)
 
-    string = [word for word in string if word not in stopwords.words('english')]
+    #string = [word for word in string if word not in stopwords.words('english')]
     return string.strip().lower()
 
 
@@ -52,8 +52,6 @@ def load_data_and_labels(data_dir):
         fileList2 = list(reader)
     fileList = fileList1# + fileList2
 
-
-    
     x = []
     y = []
     for l in fileList:
@@ -95,6 +93,7 @@ def load_data_and_labels(data_dir):
             continue
         x.append(str(l[3])+" "+str(l[5]))
         y.append(priceClass)
+    x = [clean_str(sent) for sent in x]
     return [x, y]
 
 

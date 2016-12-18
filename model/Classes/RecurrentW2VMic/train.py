@@ -5,6 +5,7 @@ import numpy as np
 import os
 import time
 import datetime
+import pickle
 import data_helpers
 from rec_cbof import LSTM_CBOW
 from tensorflow.contrib import learn
@@ -76,7 +77,7 @@ numberTestSamples_2 = int(splitPercentage_2*int(len(x_text)))
 #print("Number of test samples: {}".format(numberTestSamples)) 
 
 # Build vocabulary
-max_document_length = max([len(x.split(" ")) for x in x_text])
+max_document_length = int(np.percentile([len(x.split(" ")) for x in x_text],95)) #mean 8#p95-23 p90#19 p8013
 print("max_document_length:")
 print(max_document_length) 
 #max_document_length = 70
@@ -263,11 +264,14 @@ with tf.Graph().as_default():
               "loss": model.loss,
               "accuracy": model.accuracy,
               "final_state": model.final_state,
+              "predicted_labels": model.predicted_labels,
+              "true_labels": model.true_labels
 
           }
         count= 0
         ba_test = data_helpers.batch_iter(list(zip(x_tot, y_tot)), FLAGS.batch_size, 1)
-
+        pred_lab = []
+        true_lab = []
         print("Dev split created")
         for batch in ba_test:
             x_batch, y_batch = zip(*batch)
@@ -286,6 +290,8 @@ with tf.Graph().as_default():
                 loss = loss + vals["loss"]
                 state = vals["final_state"]
                 accuracy = accuracy+ vals["accuracy"]
+                pred_lab.append(vals["predicted_labels"])
+                true_lab.append(vals["true_labels"])
                 #print(loss, accuracy)
 
         loss = loss*1./count
@@ -296,7 +302,8 @@ with tf.Graph().as_default():
         with open(output_file, 'a') as out:
             out.write("\nEvaluation on test set of size {}\n Loss, Accuracy\n".format(len(y_test)))
             out.write("{:g},{:g}".format(loss, accuracy) + '\n')
-
+        pickle.dump(true_lab, open("true_labels.p", "wb"))
+        pickle.dump(pred_lab, open("predicted_labels.p", "wb"))
 
     def dev_step(x_tot, y_tot, model, xtest, ytest, model_2, session, writer=None):
         """
