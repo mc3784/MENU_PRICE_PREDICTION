@@ -68,7 +68,7 @@ numberTestSamples_2 = int(splitPercentage_2*int(len(x_text)))
 #print("Number of test samples: {}".format(numberTestSamples)) 
 
 # Build vocabulary
-max_document_length = max([len(x.split(" ")) for x in x_text])
+max_document_length = int(np.percentile(([len(x.split(" ")) for x in x_text]),95))
 print("max_document_length:")
 print(max_document_length) 
 #max_document_length = 70
@@ -253,27 +253,30 @@ with tf.Graph().as_default():
             """
             A single training step
             """
-            batches = data_helpers.batch_iter(
+            ba_test = data_helpers.batch_iter(
             list(zip(x_batch, y_batch)), FLAGS.batch_size, 1)
             global notImproving
 
             loss = 0.
             accuracy = 0.
             c =1
-            for batch in batches:
+
+            for batch in ba_test:
                 if len(batch) == FLAGS.batch_size:
                     x, y = zip(*batch)
                     feed_dict = {
                       cbof.input_x: x,
                       cbof.input_y: y
                     }
-                    step, summaries, loss_test, accuracy_test = sess.run(
-                        [global_step, dev_summary_op, cbof.loss, cbof.accuracy],
-                        feed_dict)
+                    step, summaries, loss, accuracy,predicted_labels,true_labels = sess.run(
+                    [global_step, dev_summary_op, cbof.loss, cbof.accuracy,cbof.predicted_labels,cbof.true_labels],
+                    feed_dict)
                     loss = loss + loss_test
                     accuracy = accuracy + accuracy_test
-                    c= c+1
 
+                    c= c+1
+            pickle.dump(true_labels, open("true_labels.p", "wb"))
+            pickle.dump(predicted_labels, open("predicted_labels.p", "wb"))
             loss = loss/c
             accuracy = accuracy/c
 

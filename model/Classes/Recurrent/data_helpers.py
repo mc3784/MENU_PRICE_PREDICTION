@@ -95,6 +95,7 @@ def load_data_and_labels(data_dir):
         x.append(str(l[3])+" "+str(l[5]))
         y.append(priceClass)
     x = [clean_str(sent) for sent in x]
+    print(x[0], x[1], x[2])
     return [x, y]
 
 
