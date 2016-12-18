@@ -380,7 +380,7 @@ with tf.Graph().as_default():
 
 
     # Write vocabulary
-    #vocab_processor.save(os.path.join(out_dir, "vocab"))
+    vocab_processor.save(os.path.join(out_dir, "vocab"))
     out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
     checkpoint_dir = os.path.abspath(os.path.join(out_dir, "checkpoints"))
     checkpoint_prefix = os.path.join(checkpoint_dir, "model")

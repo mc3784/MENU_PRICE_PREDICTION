@@ -396,6 +396,8 @@ with tf.Graph().as_default():
     print("Writing to {}\n".format(out_dir))
     train_summary_dir = os.path.join(out_dir, "summaries", "train")
     sv = tf.train.Supervisor(logdir=checkpoint_prefix)
+    # Write vocabulary
+    vocab_processor.save(os.path.join(out_dir, "vocab"))
 
     batches = data_helpers.batch_iter(list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
 
