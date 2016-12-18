@@ -33,14 +33,14 @@ frequentWords = mostCommondWords(" ".join(x_text).split())
 
 
 
-
-vocab_processor = learn.preprocessing.VocabularyProcessor(200)
-vocab = vocab_processor.restore("/scratch/mc3784/MENU/run-9311213/runs/1481645517/vocab")
+#/scratch/mc3784/MENU/run-9311213/runs/1481645517/vocab
+vocab_processor = learn.preprocessing.VocabularyProcessor(185)
+vocab = vocab_processor.restore("/scratch/mc3784/Continuous/MLP/run-9342821/runs/1482020031/vocab")
 #/scratch/mc3784/Continuous/MLP/run-9317041/runs/1481732337/
 vocabMap = vocab.vocabulary_._mapping
 
 modelEmbedding = None
-checkpoint_file = tf.train.latest_checkpoint("/scratch/mc3784/MENU/run-9311213/runs/1481645517/checkpoints")
+checkpoint_file = tf.train.latest_checkpoint("/scratch/mc3784/Continuous/MLP/run-9342821/runs/1482020031/checkpoints")
 
 
 print "{}.meta".format(checkpoint_file)
