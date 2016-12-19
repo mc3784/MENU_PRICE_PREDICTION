@@ -290,8 +290,8 @@ with tf.Graph().as_default():
                 loss = loss + vals["loss"]
                 state = vals["final_state"]
                 accuracy = accuracy+ vals["accuracy"]
-                pred_lab.append(vals["predicted_labels"])
-                true_lab.append(vals["true_labels"])
+                pred_lab.extend(list(vals["predicted_labels"]))
+                true_lab.extend(list(vals["true_labels"]))
                 #print(loss, accuracy)
 
         loss = loss*1./count
