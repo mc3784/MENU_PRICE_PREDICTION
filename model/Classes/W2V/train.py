@@ -108,6 +108,7 @@ vocabulary = data_helpers.create_vocabulary(x_train.tolist(),max_document_length
 
 x_train = data_helpers.substitute_oov(x_train,vocabulary,max_document_length)
 x_dev = data_helpers.substitute_oov(x_dev,vocabulary,max_document_length)
+x_test = data_helpers.substitute_oov(x_test,vocabulary,max_document_length)
 
 
 
@@ -125,6 +126,7 @@ if useBigram:
 #exit()
 x_train = np.array(list(vocab_processor.fit_transform(x_train)))
 x_dev = np.array(list(vocab_processor.transform(x_dev)))
+x_test = np.array(list(vocab_processor.transform(x_test)))
 
 
 #print x_train[0]
