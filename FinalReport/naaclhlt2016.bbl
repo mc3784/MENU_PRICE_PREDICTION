@@ -1,0 +1,142 @@
+\begin{thebibliography}{}
+
+\bibitem[\protect\citename{Archak \bgroup et al.\egroup
+  }2011]{archak2011deriving}
+Nikolay Archak, Anindya Ghose, and Panagiotis~G Ipeirotis.
+\newblock 2011.
+\newblock Deriving the pricing power of product features by mining consumer
+  reviews.
+\newblock {\em Management Science}, 57(8):1485--1509.
+
+\bibitem[\protect\citename{Beale and Jackson}1990]{beale1990neural}
+Russell Beale and Tom Jackson.
+\newblock 1990.
+\newblock {\em Neural Computing-an introduction}.
+\newblock CRC Press.
+
+\bibitem[\protect\citename{Chahuneau \bgroup et al.\egroup
+  }2012]{chahuneau2012word}
+Victor Chahuneau, Kevin Gimpel, Bryan~R Routledge, Lily Scherlis, and Noah~A
+  Smith.
+\newblock 2012.
+\newblock Word salad: Relating food prices and descriptions.
+\newblock In {\em Proceedings of the 2012 Joint Conference on Empirical Methods
+  in Natural Language Processing and Computational Natural Language Learning},
+  pages 1357--1367. Association for Computational Linguistics.
+
+\bibitem[\protect\citename{Cho \bgroup et al.\egroup }2014]{cho2014learning}
+Kyunghyun Cho, Bart Van~Merri{\"e}nboer, Caglar Gulcehre, Dzmitry Bahdanau,
+  Fethi Bougares, Holger Schwenk, and Yoshua Bengio.
+\newblock 2014.
+\newblock Learning phrase representations using rnn encoder-decoder for
+  statistical machine translation.
+\newblock {\em arXiv preprint arXiv:1406.1078}.
+
+\bibitem[\protect\citename{Cho}2015]{cho2015natural}
+Kyunghyun Cho.
+\newblock 2015.
+\newblock Natural language understanding with distributed representation.
+\newblock {\em arXiv preprint arXiv:1511.07916}.
+
+\bibitem[\protect\citename{Freedman and
+  Jurafsky}2011]{freedman2011authenticity}
+Joshua Freedman and Dan Jurafsky.
+\newblock 2011.
+\newblock Authenticity in america: Class distinctions in potato chip
+  advertising.
+\newblock {\em Gastronomica: The Journal of Critical Food Studies},
+  11(4):46--54.
+
+\bibitem[\protect\citename{Gers \bgroup et al.\egroup }2000]{gers2000learning}
+Felix~A Gers, J{\"u}rgen Schmidhuber, and Fred Cummins.
+\newblock 2000.
+\newblock Learning to forget: Continual prediction with lstm.
+\newblock {\em Neural computation}, 12(10):2451--2471.
+
+\bibitem[\protect\citename{Hill \bgroup et al.\egroup }2016]{hill2016learning}
+Felix Hill, Kyunghyun Cho, and Anna Korhonen.
+\newblock 2016.
+\newblock Learning distributed representations of sentences from unlabelled
+  data.
+\newblock {\em arXiv preprint arXiv:1602.03483}.
+
+\bibitem[\protect\citename{Joshi \bgroup et al.\egroup }2010]{joshi2010movie}
+Mahesh Joshi, Dipanjan Das, Kevin Gimpel, and Noah~A Smith.
+\newblock 2010.
+\newblock Movie reviews and revenues: An experiment in text regression.
+\newblock In {\em Human Language Technologies: The 2010 Annual Conference of
+  the North American Chapter of the Association for Computational Linguistics},
+  pages 293--296. Association for Computational Linguistics.
+
+\bibitem[\protect\citename{Jurafsky \bgroup et al.\egroup
+  }2014]{jurafsky2014narrative}
+Dan Jurafsky, Victor Chahuneau, Bryan~R Routledge, and Noah~A Smith.
+\newblock 2014.
+\newblock Narrative framing of consumer sentiment in online restaurant reviews.
+\newblock {\em First Monday}, 19(4).
+
+\bibitem[\protect\citename{Jurafsky \bgroup et al.\egroup
+  }2016]{jurafsky2016bordieu}
+Dan Jurafsky, Victor Chahuneau, Bryan~R Routledge, and Noah~A Smith.
+\newblock 2016.
+\newblock Linguistic markers of status in food culture: Bourdieu’s
+  distinction in a menu corpus.
+\newblock {\em Cultural Analysis}.
+
+\bibitem[\protect\citename{Jurafsky}2014]{jurafsky2014language}
+Dan Jurafsky.
+\newblock 2014.
+\newblock {\em The language of food: A linguist reads the menu}.
+\newblock WW Norton \& Company.
+
+\bibitem[\protect\citename{Kasavana \bgroup et al.\egroup
+  }1990]{kasavana1990menu}
+Michael~L Kasavana, Donald~I Smith, and Raymond~S Schmidgall.
+\newblock 1990.
+\newblock {\em Menu engineering: a practical guide to menu analysis. Rev}.
+
+\bibitem[\protect\citename{McCall and Lynn}2008]{mccall2008effects}
+Michael McCall and Ann Lynn.
+\newblock 2008.
+\newblock The effects of restaurant menu item descriptions on perceptions of
+  quality, price, and purchase intention.
+\newblock {\em Journal of Foodservice Business Research}, 11(4):439--445.
+
+\bibitem[\protect\citename{Mikolov \bgroup et al.\egroup
+  }2013a]{mikolov2013efficient}
+Tomas Mikolov, Kai Chen, Greg Corrado, and Jeffrey Dean.
+\newblock 2013a.
+\newblock Efficient estimation of word representations in vector space.
+\newblock {\em arXiv preprint arXiv:1301.3781}.
+
+\bibitem[\protect\citename{Mikolov \bgroup et al.\egroup
+  }2013b]{mikolov2013distributed}
+Tomas Mikolov, Ilya Sutskever, Kai Chen, Greg~S Corrado, and Jeff Dean.
+\newblock 2013b.
+\newblock Distributed representations of words and phrases and their
+  compositionality.
+\newblock In {\em Advances in neural information processing systems}, pages
+  3111--3119.
+
+\bibitem[\protect\citename{Specht}1991]{regneural1991}
+Donald~F Specht.
+\newblock 1991.
+\newblock A general regression neural network.
+\newblock {\em IEEE transactions on neural networks}, 2(6):568--576.
+
+\bibitem[\protect\citename{Tang \bgroup et al.\egroup }2015]{tang2015document}
+Duyu Tang, Bing Qin, and Ting Liu.
+\newblock 2015.
+\newblock Document modeling with gated recurrent neural network for sentiment
+  classification.
+\newblock In {\em Proceedings of the 2015 Conference on Empirical Methods in
+  Natural Language Processing}, pages 1422--1432.
+
+\bibitem[\protect\citename{Wansink \bgroup et al.\egroup
+  }2005]{wansink2005descriptive}
+Brian Wansink, Koert Van~Ittersum, and James~E Painter.
+\newblock 2005.
+\newblock How descriptive food names bias sensory perceptions in restaurants.
+\newblock {\em Food quality and preference}, 16(5):393--400.
+
+\end{thebibliography}
