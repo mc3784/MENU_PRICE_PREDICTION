@@ -108,6 +108,7 @@ vocabulary = data_helpers.create_vocabulary(x_train.tolist(),max_document_length
 
 x_train = data_helpers.substitute_oov(x_train,vocabulary,max_document_length)
 x_dev = data_helpers.substitute_oov(x_dev,vocabulary,max_document_length)
+x_test = data_helpers.substitute_oov(x_test,vocabulary,max_document_length)
 
 
 
@@ -125,6 +126,7 @@ if useBigram:
 #exit()
 x_train = np.array(list(vocab_processor.fit_transform(x_train)))
 x_dev = np.array(list(vocab_processor.transform(x_dev)))
+x_test = np.array(list(vocab_processor.transform(x_test)))
 
 
 #print x_train[0]
@@ -260,7 +262,8 @@ with tf.Graph().as_default():
             loss = 0.
             accuracy = 0.
             c =1
-
+            true_l = []
+            pred_l = []
             for batch in ba_test:
                 if len(batch) == FLAGS.batch_size:
                     x, y = zip(*batch)
@@ -274,9 +277,11 @@ with tf.Graph().as_default():
                     loss = loss + loss_test
                     accuracy = accuracy + accuracy_test
 
+                    true_l.extend(true_labels)
+                    pred_l.extend(predicted_labels)
                     c= c+1
-            pickle.dump(true_labels, open("true_labels.p", "wb"))
-            pickle.dump(predicted_labels, open("predicted_labels.p", "wb"))
+            pickle.dump(true_l, open("true_labels.p", "wb"))
+            pickle.dump(pred_l, open("predicted_labels.p", "wb"))
             loss = loss/c
             accuracy = accuracy/c
 

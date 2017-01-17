@@ -379,15 +379,14 @@ with tf.Graph().as_default():
     # Output directory for models and summaries
 
 
-    # Write vocabulary
-    vocab_processor.save(os.path.join(out_dir, "vocab"))
+    # Write vocabular
     out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
     checkpoint_dir = os.path.abspath(os.path.join(out_dir, "checkpoints"))
     checkpoint_prefix = os.path.join(checkpoint_dir, "model")
     print("Writing to {}\n".format(out_dir))
     train_summary_dir = os.path.join(out_dir, "summaries", "train")
     sv = tf.train.Supervisor(logdir=checkpoint_prefix)
-
+    vocab_processor.save(os.path.join(out_dir, "vocab"))
     batches = data_helpers.batch_iter(list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
 
     with sv.managed_session() as sess:
